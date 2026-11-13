@@ -27,3 +27,19 @@ Mock data for immediate frontend development is in [`data/mock/results.mock.json
 ```bash
 uv run python -m src.data.fetch --region cairo --lat 30.0444 --lon 31.2357 --vars T2M PRECTOTCORR --start 2001 --end 2025
 ```
+
+## Build results for the frontend
+```bash
+uv run python -m src.pipeline.build
+```
+Reads every `data/processed/<region>_<variable>.csv` plus [`config/regions.json`](config/regions.json)
+(display name, lat, lon per region slug) and writes into `src/web/public/data/`:
+- `results/<region>_<variable>.json` — one result per pair, validated against `schemas/trend_result.schema.json`
+- `index.json` — the list of available results, validated against [`schemas/index.schema.json`](schemas/index.schema.json)
+
+The build fails without writing anything if a CSV is malformed, a region is missing from
+`config/regions.json`, or any output breaks its schema. The output folder is generated (git-ignored).
+
+Until `src/stats/stats.py` lands, the trend and verdict come from `src/pipeline/stats_stub.py`:
+results carry `metadata.is_mock = true` and "(MOCK)" in the headline. Switch to the real module
+in `src/pipeline/analysis.py` (one import, one flag).

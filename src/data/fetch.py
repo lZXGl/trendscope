@@ -142,7 +142,9 @@ def parse_giovanni_csv(
     return df[["date", "region", "variable", "raw_value", "anomaly", "unit", "source"]]
 
 
-def save_processed(df: pd.DataFrame, region: str, variable: str, out_dir: Path = PROCESSED_DIR) -> Path:
+def save_processed(
+    df: pd.DataFrame, region: str, variable: str, out_dir: Path = PROCESSED_DIR
+) -> Path:
     """Write standardized CSV to data/processed/."""
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{region.lower()}_{variable.lower()}.csv"
@@ -155,7 +157,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--region", default="cairo", help="Region slug (e.g. cairo)")
     parser.add_argument("--lat", type=float, default=30.0444, help="Latitude")
     parser.add_argument("--lon", type=float, default=31.2357, help="Longitude")
-    parser.add_argument("--vars", nargs="+", default=["T2M", "PRECTOTCORR"], help="NASA POWER variables")
+    parser.add_argument(
+        "--vars", nargs="+", default=["T2M", "PRECTOTCORR"], help="NASA POWER variables"
+    )
     parser.add_argument("--start", type=int, default=2001, help="Start year")
     parser.add_argument("--end", type=int, default=2025, help="End year")
     parser.add_argument("--force", action="store_true", help="Ignore local cache")

@@ -163,8 +163,11 @@ def process_modis_rasters(
     out_csv: Path = PROCESSED_DIR / "nile_delta_ndvi.csv",
     allow_marginal: bool = False,
     region: str = "nile_delta",
+    min_pixel_presence: float = 0.8,
+    start_ym: str | None = None,
+    end_ym: str | None = None,
 ) -> pd.DataFrame:
-    """Filter MODIS NDVI GeoTIFFs by pixel reliability QA, scale by 0.0001, and export CSV."""
+    """Filter MODIS NDVI GeoTIFFs by QA, apply fixed eligible-pixel mask, and export CSV."""
     ndvi_files = sorted(raster_dir.glob("*_NDVI_doy*.tif*"))
     qa_by_ym: dict[str, Path] = {}
     for qa_path in sorted(raster_dir.glob("*_pixel_reliability_doy*.tif*")):
@@ -174,7 +177,8 @@ def process_modis_rasters(
         raise FileNotFoundError(f"No MODIS NDVI GeoTIFFs found in {raster_dir}")
 
     allowed_qa = (0, 1) if allow_marginal else (0,)
-    rows: list[dict] = []
+    monthly_arrays: list[tuple[str, np.ndarray, np.ndarray]] = []
+    ref_grid: tuple[tuple[int, int], object, object] | None = None
 
     for ndvi_path in ndvi_files:
         ym = _doy_to_year_month(ndvi_path.name)
@@ -183,11 +187,20 @@ def process_modis_rasters(
             raise FileNotFoundError(f"Missing matching pixel_reliability GeoTIFF for {ym}")
 
         with rasterio.open(ndvi_path) as ndvi_src, rasterio.open(qa_path) as qa_src:
+            if (
+                ndvi_src.shape != qa_src.shape
+                or ndvi_src.crs != qa_src.crs
+                or ndvi_src.transform != qa_src.transform
+            ):
+                raise ValueError(f"NDVI/QA grid mismatch for {ym}")
+            grid = (ndvi_src.shape, ndvi_src.crs, ndvi_src.transform)
+            if ref_grid is None:
+                ref_grid = grid
+            elif grid != ref_grid:
+                raise ValueError(f"Grid changed in {ym}: {grid} != {ref_grid}")
+
             ndvi_raw = ndvi_src.read(1)
             qa = qa_src.read(1)
-
-        if ndvi_raw.shape != qa.shape:
-            raise ValueError(f"Shape mismatch for {ym}: {ndvi_raw.shape} vs {qa.shape}")
 
         valid_mask = (
             np.isin(qa, allowed_qa)
@@ -195,15 +208,25 @@ def process_modis_rasters(
             & (ndvi_raw >= -2000)
             & (ndvi_raw <= 10000)
         )
-        total_pixels = int(ndvi_raw.size)
-        valid_count = int(valid_mask.sum())
-        valid_fraction = round(valid_count / total_pixels, 4) if total_pixels else 0.0
+        monthly_arrays.append((ym, ndvi_raw, valid_mask))
+
+    # Fixed eligible-pixel mask across study period to avoid shifting-sample bias
+    presence = np.mean([m for _, _, m in monthly_arrays], axis=0)
+    eligible_mask = presence >= min_pixel_presence
+    eligible_total = int(eligible_mask.sum())
+    if eligible_total == 0:
+        raise ValueError("No pixels meet min_pixel_presence threshold")
+
+    rows: list[dict] = []
+    for ym, ndvi_raw, valid_mask in monthly_arrays:
+        use_mask = eligible_mask & valid_mask
+        valid_count = int(use_mask.sum())
+        valid_fraction = valid_count / eligible_total
         ndvi_mean = (
-            round(float(ndvi_raw[valid_mask].astype(np.float64).mean() * NDVI_SCALE), 6)
+            float(ndvi_raw[use_mask].astype(np.float64).mean() * NDVI_SCALE)
             if valid_count > 0
             else np.nan
         )
-
         rows.append(
             {
                 "date": ym,
@@ -217,7 +240,20 @@ def process_modis_rasters(
             }
         )
 
-    df = _add_monthly_anomaly(pd.DataFrame(rows))
+    df = pd.DataFrame(rows)
+    if start_ym and end_ym:
+        full_dates = pd.period_range(start_ym, end_ym, freq="M").strftime("%Y-%m")
+        df = (
+            df.set_index("date").reindex(full_dates).reset_index().rename(columns={"index": "date"})
+        )
+        df["region"] = region.lower()
+        df["variable"] = "NDVI"
+        df["unit"] = "NDVI"
+        df["source"] = "NASA MODIS MOD13A3.061"
+        df["valid_pixel_count"] = df["valid_pixel_count"].fillna(0).astype(int)
+        df["valid_fraction"] = df["valid_fraction"].fillna(0.0)
+
+    df = _add_monthly_anomaly(df, round_values=False)
     cols = [
         "date",
         "region",
@@ -240,13 +276,15 @@ def process_modis_rasters(
 # ---------------------------------------------------------------------------
 
 
-def _add_monthly_anomaly(df: pd.DataFrame) -> pd.DataFrame:
+def _add_monthly_anomaly(df: pd.DataFrame, round_values: bool = True) -> pd.DataFrame:
     """Compute monthly climatology anomaly on a sorted DataFrame with `date` and `raw_value`."""
     df = df.sort_values("date").reset_index(drop=True)
     months = df["date"].str.slice(5, 7)
     climatology = df.groupby(months)["raw_value"].transform("mean")
-    df["anomaly"] = (df["raw_value"] - climatology).round(4)
-    df["raw_value"] = df["raw_value"].round(4)
+    df["anomaly"] = df["raw_value"] - climatology
+    if round_values:
+        df["anomaly"] = df["anomaly"].round(4)
+        df["raw_value"] = df["raw_value"].round(4)
     return df
 
 
@@ -367,6 +405,9 @@ def main(argv: list[str] | None = None) -> int:
     proc.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
     proc.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
     proc.add_argument("--allow-marginal", action="store_true", help="Include QA=1 marginal pixels")
+    proc.add_argument("--min-presence", type=float, default=0.8, help="Min temporal pixel validity")
+    proc.add_argument("--start-ym", default="2001-01", help="Start YYYY-MM for full calendar")
+    proc.add_argument("--end-ym", default="2024-12", help="End YYYY-MM for full calendar")
 
     # 2) Submit + download AppEEARS MOD13A3.061 task
     app = sub.add_parser("appeears", help="Submit & download MOD13A3.061 from NASA AppEEARS")
@@ -391,7 +432,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "modis-process":
-        df = process_modis_rasters(args.raster_dir, args.out_csv, args.allow_marginal)
+        df = process_modis_rasters(
+            args.raster_dir,
+            args.out_csv,
+            args.allow_marginal,
+            min_pixel_presence=args.min_presence,
+            start_ym=args.start_ym,
+            end_ym=args.end_ym,
+        )
         print(f"Exported {len(df)} monthly NDVI rows -> {args.out_csv}")
         return 0
 

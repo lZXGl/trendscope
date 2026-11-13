@@ -8,9 +8,12 @@ __pycache__/
 # Raw downloaded NASA payloads (keep processed & mock JSON tracked)
 data/raw/*.json
 data/raw/*.csv
-data/raw/rasters/*.tif
-data/raw/rasters/*.tiff
+data/raw/rasters/
 !data/raw/.gitkeep
+
+# Prepared NASA release assets stay local; track the small archive index/checksums.
+data/archives/**/assets/
+data/results/*.zip
 
 # Frontend
 src/web/node_modules/

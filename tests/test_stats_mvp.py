@@ -1,6 +1,7 @@
 """Statistics MVP checks; leave the Validation team's test_stats.py untouched."""
 
 import json
+import math
 from datetime import date
 from pathlib import Path
 
@@ -39,6 +40,14 @@ def analyze(df):
     assert result["trend"]["autocorrected"] is False
     assert "Autocorrelation has not yet been corrected" in result["verdict"]["summary"]
     return result
+
+
+def test_real_nasa_p_value_avoids_tail_cancellation():
+    source = Path(__file__).resolve().parents[1] / "data/processed/nile_delta_ndvi.csv"
+    result = analyze_trend(pd.read_csv(source), lat=30.95, lon=31.0)
+    p_value = result["trend"]["p_value"]
+    assert p_value > 0
+    assert p_value == pytest.approx(5.72651111606e-18, rel=5e-12, abs=0)
 
 
 @pytest.mark.parametrize("sign,direction", [(1, "increasing"), (-1, "decreasing")])
@@ -107,7 +116,7 @@ def test_monthly_anomalies_and_library_results_with_gaps():
         ]
     )
     reference = mk.original_test(expected[keep].to_numpy(), alpha=0.05)
-    assert result["trend"]["p_value"] == reference.p
+    assert result["trend"]["p_value"] == math.erfc(abs(reference.z) / math.sqrt(2))
     assert result["trend"]["tau"] == reference.Tau
     assert result["trend"]["sens_slope"] == pytest.approx(
         theilslopes(expected[keep], x=x).slope * 10, abs=1e-12

@@ -1,0 +1,84 @@
+{
+  "dataset_id": "MOD13A3.061",
+  "layers": [
+    "_1_km_monthly_NDVI",
+    "_1_km_monthly_pixel_reliability"
+  ],
+  "qa_criteria": "pixel_reliability == 0 (Good); raw NDVI in [-2000, 10000], scale 0.0001",
+  "processing_rules": {
+    "scale": 0.0001,
+    "fill_value": -3000,
+    "valid_raw_range": [
+      -2000,
+      10000
+    ],
+    "allow_marginal": false,
+    "min_pixel_presence": 0.8
+  },
+  "mask": {
+    "min_pixel_presence": 0.8
+  },
+  "aoi": {
+    "region_id": "aoi_s101",
+    "seed": 101,
+    "lat": 64.7007,
+    "lon": -98.4826,
+    "size_deg": 0.5,
+    "bbox": [
+      -98.7326,
+      64.4507,
+      -98.2326,
+      64.9507
+    ],
+    "polygon": [
+      [
+        -98.7326,
+        64.4507
+      ],
+      [
+        -98.2326,
+        64.4507
+      ],
+      [
+        -98.2326,
+        64.9507
+      ],
+      [
+        -98.7326,
+        64.9507
+      ],
+      [
+        -98.7326,
+        64.4507
+      ]
+    ],
+    "attempts": 5
+  },
+  "date_range": {
+    "start": "06-01-2023",
+    "end": "08-31-2023"
+  },
+  "nasa_task_name": "trendscope_demo_s101_summer",
+  "nasa_task_id": "7fe08d99-2d74-43b2-8f88-c3f9802d0958",
+  "status": "ok",
+  "crs": "EPSG:4326",
+  "resolution": [
+    0.00833333333258679,
+    0.00833333333258679
+  ],
+  "bounds": [
+    -98.73333332448829,
+    64.44999999422623,
+    -98.22499999120049,
+    64.95833332751403
+  ],
+  "grid_shape": [
+    61,
+    61
+  ],
+  "coverage": {
+    "months_total": 3,
+    "months_available": 3,
+    "mean_valid_fraction": 1.0
+  }
+}

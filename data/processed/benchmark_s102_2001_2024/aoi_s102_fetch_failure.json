@@ -1,0 +1,65 @@
+{
+  "dataset_id": "MOD13A3.061",
+  "layers": [
+    "_1_km_monthly_NDVI",
+    "_1_km_monthly_pixel_reliability"
+  ],
+  "qa_criteria": "pixel_reliability == 0 (Good); raw NDVI in [-2000, 10000], scale 0.0001",
+  "processing_rules": {
+    "scale": 0.0001,
+    "fill_value": -3000,
+    "valid_raw_range": [
+      -2000,
+      10000
+    ],
+    "allow_marginal": false,
+    "min_pixel_presence": 0.8
+  },
+  "mask": {
+    "min_pixel_presence": 0.8
+  },
+  "aoi": {
+    "region_id": "aoi_s102",
+    "seed": 102,
+    "lat": 46.3319,
+    "lon": -72.4795,
+    "size_deg": 0.5,
+    "bbox": [
+      -72.7295,
+      46.0819,
+      -72.2295,
+      46.5819
+    ],
+    "polygon": [
+      [
+        -72.7295,
+        46.0819
+      ],
+      [
+        -72.2295,
+        46.0819
+      ],
+      [
+        -72.2295,
+        46.5819
+      ],
+      [
+        -72.7295,
+        46.5819
+      ],
+      [
+        -72.7295,
+        46.0819
+      ]
+    ],
+    "attempts": 2
+  },
+  "date_range": {
+    "start": "01-01-2001",
+    "end": "12-31-2024"
+  },
+  "nasa_task_name": "trendscope_s102_2001_2024",
+  "nasa_task_id": "3a8d7725-13ca-4b6b-a00a-79aaa48d3484",
+  "status": "failed",
+  "error": "HTTPSConnectionPool(host='appeears.earthdatacloud.nasa.gov', port=443): Read timed out. (read timeout=60)"
+}

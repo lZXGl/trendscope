@@ -41,7 +41,7 @@ def test_real_export_matches_production_and_reports(tmp_path, observations):
     assert result["metadata"]["is_mock"] is False
     assert result["series"] == baseline["series"]
     assert len(result["series"]) == 288
-    assert result["trend"] | {"p_value": baseline["trend"]["p_value"]} == baseline["trend"]
+    assert result["trend"] == baseline["trend"]
     assert result["trend"]["autocorrected"] is False
     assert 0 < result["trend"]["p_value"] < 0.05
 

@@ -67,7 +67,7 @@ def build_result(observations: pd.DataFrame) -> dict:
             # Never substitute a made-up minimum probability or publish a zero tail.
             raise ValueError(f"{name} tail probability cannot be represented as positive JSON.")
     if (
-        ordinary["p"] != trend["p_value"]
+        ordinary["p_stable"] != trend["p_value"]
         or ordinary["tau"] != trend["tau"]
         or ordinary["reject"] != trend["significant"]
         or ordinary["s"] != corrected["s"]

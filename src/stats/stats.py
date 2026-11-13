@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 
 import numpy as np
@@ -110,9 +111,11 @@ def analyze_trend(
     dates = df.loc[valid, "timestamp"].dt
     decimal_year = dates.year + (dates.day_of_year - 1) / np.where(dates.is_leap_year, 366, 365)
     result = mk.original_test(y, alpha=0.05)
+    # Same two-sided normal tail, without cancellation from subtracting a CDF from 1.
+    p_value = math.erfc(abs(result.z) / math.sqrt(2))
     # pymannkendall's own slope uses row indices; it is unsuitable for calendar gaps.
     slope = float(theilslopes(y, x=decimal_year.to_numpy()).slope * 10)
-    significant = bool(result.p < 0.05)
+    significant = bool(p_value < 0.05)
     direction = "increasing" if result.Tau > 0 else "decreasing" if result.Tau < 0 else "flat"
     headline = (
         f"Statistically significant {direction} NDVI anomalies"
@@ -122,7 +125,7 @@ def analyze_trend(
     summary = (
         f"Monthly anomalies are {direction} by Kendall's tau ({result.Tau:.3g}). "
         f"Sen's slope is {slope:.4g} NDVI per decade; "
-        f"ordinary Mann–Kendall p={result.p:.4g} (alpha=0.05, n={n}). "
+        f"ordinary Mann–Kendall p={p_value:.4g} (alpha=0.05, n={n}). "
         "Autocorrelation has not yet been corrected."
     )
     caveats = [
@@ -160,7 +163,7 @@ def analyze_trend(
             "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
             "sens_slope": slope,
             "slope_unit": "NDVI/decade",
-            "p_value": float(result.p),
+            "p_value": p_value,
             "tau": float(result.Tau),
             "significant": significant,
             "autocorrected": False,

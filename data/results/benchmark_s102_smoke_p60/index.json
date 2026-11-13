@@ -1,0 +1,16 @@
+[
+  {
+    "region": "aoi_s102",
+    "region_name": "aoi_s102",
+    "lat": 46.3319,
+    "lon": -72.4795,
+    "variable": "NDVI",
+    "variable_name": "Vegetation greenness (NDVI)",
+    "variable_description": "Satellite vegetation index: higher values mean denser, healthier plant cover.",
+    "unit": "NDVI",
+    "source": "NASA MODIS MOD13A3.061",
+    "file": "results/aoi_s102_ndvi.json",
+    "significant": false,
+    "headline": "No statistically significant trend in NDVI anomalies"
+  }
+]

@@ -4,16 +4,21 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import re
+import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import rasterio
 import requests
+
+from src.data.aoi import bbox_to_polygon, generate_random_aoi
 
 APPEEARS_API = "https://appeears.earthdatacloud.nasa.gov/api"
 POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
@@ -43,6 +48,25 @@ UNIT_ALIASES = {"C": "degC"}
 # ---------------------------------------------------------------------------
 
 
+def validate_bbox(bbox: tuple | list) -> None:
+    """Reject invalid geographic boxes before a request or cache write."""
+    if (
+        len(bbox) != 4
+        or not all(np.isfinite(v) for v in bbox)
+        or not (-180 <= bbox[0] < bbox[2] <= 180)
+        or not (-90 <= bbox[1] < bbox[3] <= 90)
+    ):
+        raise ValueError("bbox must be finite MIN_LON MIN_LAT MAX_LON MAX_LAT in geographic bounds")
+
+
+def _request_months(start_date: str, end_date: str) -> tuple[str, str]:
+    start = dt.datetime.strptime(start_date, "%m-%d-%Y")
+    end = dt.datetime.strptime(end_date, "%m-%d-%Y")
+    if start > end:
+        raise ValueError("start date must not follow end date")
+    return start.strftime("%Y-%m"), end.strftime("%Y-%m")
+
+
 def appeears_login(username: str, password: str) -> str:
     """Authenticate with NASA AppEEARS using Earthdata credentials and return bearer token."""
     resp = requests.post(f"{APPEEARS_API}/login", auth=(username, password), timeout=30)
@@ -58,6 +82,8 @@ def submit_modis_ndvi_task(
     task_name: str = "trendscope_nile_delta_mod13a3",
 ) -> str:
     """Submit an AppEEARS area request for MOD13A3.061 NDVI + pixel reliability GeoTIFFs."""
+    validate_bbox(bbox)
+    _request_months(start_date, end_date)
     min_lon, min_lat, max_lon, max_lat = bbox
     polygon = [
         [min_lon, min_lat],
@@ -125,26 +151,36 @@ def download_appeears_rasters(
     bundle = requests.get(f"{APPEEARS_API}/bundle/{task_id}", headers=headers, timeout=30)
     bundle.raise_for_status()
 
-    saved: list[Path] = []
-    for item in bundle.json().get("files", []):
+    tifs = [
+        item
+        for item in bundle.json().get("files", [])
+        if Path(item["file_name"]).name.lower().endswith((".tif", ".tiff"))
+    ]
+    saved = [raster_dir / Path(item["file_name"]).name for item in tifs]
+    todo = [item for item in tifs if not (raster_dir / Path(item["file_name"]).name).exists()]
+
+    def _download_one(item: dict) -> None:
         fname = Path(item["file_name"]).name
-        if not fname.lower().endswith((".tif", ".tiff")):
-            continue
         dest = raster_dir / fname
-        if dest.exists():
-            saved.append(dest)
-            continue
-        dl = requests.get(
-            f"{APPEEARS_API}/bundle/{task_id}/{item['file_id']}",
-            headers=headers,
-            stream=True,
-            timeout=60,
-        )
+        tmp = raster_dir / f"{fname}.tmp"
+        for attempt in range(5):
+            dl = requests.get(
+                f"{APPEEARS_API}/bundle/{task_id}/{item['file_id']}",
+                headers=headers,
+                timeout=60,
+            )
+            if dl.status_code == 429:
+                time.sleep(2 * (attempt + 1))
+                continue
+            dl.raise_for_status()
+            tmp.write_bytes(dl.content)
+            tmp.replace(dest)
+            return
         dl.raise_for_status()
-        with dest.open("wb") as fh:
-            for chunk in dl.iter_content(chunk_size=65536):
-                fh.write(chunk)
-        saved.append(dest)
+
+    if todo:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            list(pool.map(_download_one, todo))
     return saved
 
 
@@ -155,6 +191,8 @@ def _doy_to_year_month(filename: str) -> str:
         raise ValueError(f"Missing doyYYYYDDD token in raster filename: {filename}")
     year, doy = int(match.group(1)), int(match.group(2))
     date_obj = dt.date(year, 1, 1) + dt.timedelta(days=doy - 1)
+    if doy < 1 or date_obj.year != year:
+        raise ValueError(f"Invalid day-of-year in raster filename: {filename}")
     return date_obj.strftime("%Y-%m")
 
 
@@ -168,9 +206,33 @@ def process_modis_rasters(
     end_ym: str | None = None,
 ) -> pd.DataFrame:
     """Filter MODIS NDVI GeoTIFFs by QA, apply fixed eligible-pixel mask, and export CSV."""
-    ndvi_files = sorted(raster_dir.glob("*_NDVI_doy*.tif*"))
+    if not np.isfinite(min_pixel_presence) or not 0 <= min_pixel_presence <= 1:
+        raise ValueError("min_pixel_presence must be in [0, 1]")
+    if (start_ym is None) != (end_ym is None):
+        raise ValueError("Both start_ym and end_ym are required together")
+    if start_ym is not None:
+        for ym in (start_ym, end_ym):
+            if not re.fullmatch(r"[0-9]{4}-(0[1-9]|1[0-2])", ym) or ym[:4] == "0000":
+                raise ValueError("Processing dates must be YYYY-MM")
+        if start_ym > end_ym:
+            raise ValueError("start_ym must not follow end_ym")
+
+    def selected_files(pattern: str) -> list[Path]:
+        selected = {}
+        for path in sorted(raster_dir.glob(pattern)):
+            if path.suffix.lower() not in {".tif", ".tiff"}:
+                continue
+            ym = _doy_to_year_month(path.name)
+            if start_ym and not start_ym <= ym <= end_ym:
+                continue
+            if ym in selected:
+                raise ValueError(f"Duplicate monthly raster for {ym}: {selected[ym]} and {path}")
+            selected[ym] = path
+        return [selected[ym] for ym in sorted(selected)]
+
+    ndvi_files = selected_files("*_NDVI_doy*.tif*")
     qa_by_ym: dict[str, Path] = {}
-    for qa_path in sorted(raster_dir.glob("*_pixel_reliability_doy*.tif*")):
+    for qa_path in selected_files("*_pixel_reliability_doy*.tif*"):
         qa_by_ym[_doy_to_year_month(qa_path.name)] = qa_path
 
     if not ndvi_files:
@@ -268,7 +330,277 @@ def process_modis_rasters(
     df = df[cols]
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_csv, index=False)
+    df.attrs["eligible_pixel_count"] = eligible_total
     return df
+
+
+def inspect_raster_metadata(raster_dir: Path) -> dict:
+    """Extract CRS, resolution, bounds, and grid shape from the first NDVI GeoTIFF."""
+    first = next(iter(sorted(raster_dir.glob("*_NDVI_doy*.tif*"))), None)
+    if first is None:
+        return {}
+    with rasterio.open(first) as src:
+        return {
+            "crs": str(src.crs),
+            "resolution": list(src.res),
+            "bounds": [src.bounds.left, src.bounds.bottom, src.bounds.right, src.bounds.top],
+            "grid_shape": list(src.shape),
+        }
+
+
+def process_offline_modis_aoi(
+    source_manifest: Path,
+    raster_dir: Path,
+    out_csv: Path,
+    region: str,
+    min_pixel_presence: float = 0.8,
+    allow_marginal: bool = False,
+    start_ym: str | None = None,
+    end_ym: str | None = None,
+) -> pd.DataFrame:
+    """Verify local preprocessing and write its own manifest, preserving fetch history.
+
+    An existing CSV is reused only if byte-identical to a fresh offline calculation.
+    The source fetch manifest and request binding are never updated by this path.
+    """
+    source_bytes = source_manifest.read_bytes()
+    original = json.loads(source_bytes)
+    aoi = original["aoi"]
+    if (
+        not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", region)
+        or aoi["region_id"] != region
+        or out_csv.name != f"{region}_ndvi.csv"
+    ):
+        raise ValueError("Offline region and <region>_ndvi.csv must match the source AOI")
+    manifest_path = out_csv.with_name(f"{region}_meta.json")
+    if manifest_path.resolve() == source_manifest.resolve():
+        raise ValueError("Use a separate output directory to preserve the source fetch manifest")
+    validate_bbox(aoi["bbox"])
+    lat = aoi.get("lat", (aoi["bbox"][1] + aoi["bbox"][3]) / 2)
+    lon = aoi.get("lon", (aoi["bbox"][0] + aoi["bbox"][2]) / 2)
+    if not (aoi["bbox"][1] <= lat <= aoi["bbox"][3]
+            and aoi["bbox"][0] <= lon <= aoi["bbox"][2]):
+        raise ValueError("Source coordinates lie outside AOI bbox")
+    layers = ["_1_km_monthly_NDVI", "_1_km_monthly_pixel_reliability"]
+    if (original.get("dataset_id") != "MOD13A3.061"
+            or not set(layers).issubset(original.get("layers", []))
+            or not original.get("nasa_task_id")):
+        raise ValueError("Source manifest must identify the NASA task, product and required layers")
+    expected_start, expected_end = _request_months(
+        original["date_range"]["start"], original["date_range"]["end"]
+    )
+    if ((start_ym is not None and start_ym != expected_start)
+            or (end_ym is not None and end_ym != expected_end)):
+        raise ValueError("Offline dates must match the source request window")
+    binding_path = raster_dir / "request.json"
+    if binding_path.exists():
+        binding = json.loads(binding_path.read_text(encoding="utf-8"))
+        expected_identity = {
+            "bbox": aoi["bbox"], "date_range": original["date_range"],
+            "processing_rules": original["processing_rules"],
+        }
+        if (binding.get("task_id") != original["nasa_task_id"]
+                or binding.get("identity") != expected_identity):
+            raise ValueError("Local raster cache belongs to a different source request")
+
+    # Existing processor checks duplicates, paired QA, grids and full pixel arrays.
+    # Stage output so a mismatch cannot overwrite an existing smoke-test CSV.
+    with tempfile.TemporaryDirectory(prefix="trendscope-offline-") as staging:
+        staged_csv = Path(staging) / out_csv.name
+        df = process_modis_rasters(
+            raster_dir, staged_csv, allow_marginal, region, min_pixel_presence,
+            expected_start, expected_end,
+        )
+        csv_bytes = staged_csv.read_bytes()
+    if out_csv.exists() and out_csv.read_bytes() != csv_bytes:
+        raise ValueError("Existing CSV differs from verified preprocessing; use a new output path")
+
+    inventory = []
+    for layer in ("NDVI", "pixel_reliability"):
+        for path in sorted(raster_dir.glob(f"*_{layer}_doy*.tif*")):
+            if (path.suffix.lower() in {".tif", ".tiff"}
+                    and expected_start <= _doy_to_year_month(path.name) <= expected_end):
+                inventory.append({
+                    "file": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                })
+    mean_cov = float(df["valid_fraction"].mean())
+    available = int(df["raw_value"].notna().sum())
+    meta = dict(original)
+    meta.pop("error", None)  # Original error stays verbatim in fetch_attempt below.
+    meta.update(inspect_raster_metadata(raster_dir))
+    meta.update({
+        "status": "low_coverage" if available == 0 or mean_cov < 0.25 else "ok",
+        "fetch_attempt": original,
+        "offline_processing": {
+            "status": "completed",
+            "local_rasters": "verified_readable",
+            "raster_inventory": inventory,
+            "source_manifest": str(source_manifest.resolve()),
+            "source_manifest_sha256": hashlib.sha256(source_bytes).hexdigest(),
+            "experimental_override": min_pixel_presence != 0.8 or allow_marginal,
+            "production_min_pixel_presence": 0.8,
+            "note": (
+                "Experimental processing override; not production-default validation."
+                if min_pixel_presence != 0.8 or allow_marginal
+                else "Production-default processing settings."
+            ),
+        },
+        "processing_rules": {
+            "scale": NDVI_SCALE, "fill_value": NDVI_FILL,
+            "valid_raw_range": [-2000, 10000], "allow_marginal": allow_marginal,
+            "min_pixel_presence": min_pixel_presence,
+        },
+        "qa_criteria": (
+            ("pixel_reliability in {0, 1}; "
+             if allow_marginal else "pixel_reliability == 0 (Good); ")
+            + "raw NDVI in [-2000, 10000], scale 0.0001"
+        ),
+        "mask": {"min_pixel_presence": min_pixel_presence,
+                 "eligible_pixel_count": df.attrs["eligible_pixel_count"]},
+        "coverage": {"months_total": len(df), "months_available": available,
+                     "mean_valid_fraction": round(mean_cov, 4)},
+        "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
+    })
+    serialized = json.dumps(meta, indent=2, allow_nan=False) + "\n"
+    if manifest_path.exists() and manifest_path.read_text(encoding="utf-8") != serialized:
+        raise ValueError("Existing output manifest differs; use a separate output directory")
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    if not out_csv.exists():
+        out_csv.write_bytes(csv_bytes)
+    if not manifest_path.exists():
+        manifest_path.write_text(serialized, encoding="utf-8")
+    return df
+
+
+def run_modis_aoi(
+    token: str,
+    aoi: dict,
+    start_date: str = "01-01-2001",
+    end_date: str = "12-31-2024",
+    min_pixel_presence: float = 0.8,
+    allow_marginal: bool = False,
+    task_id: str | None = None,
+    task_name: str | None = None,
+    raster_root: Path = RASTER_DIR,
+    processed_dir: Path = PROCESSED_DIR,
+) -> Path:
+    """Run isolated AppEEARS fetch + raster processing for one AOI, preserving failures/metadata."""
+    aoi = dict(aoi)
+    region_id = aoi["region_id"]
+    if not isinstance(region_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", region_id):
+        raise ValueError("region_id must be a safe lowercase slug")
+    validate_bbox(aoi["bbox"])
+    start_ym, end_ym = _request_months(start_date, end_date)
+    if not np.isfinite(min_pixel_presence) or not 0 <= min_pixel_presence <= 1:
+        raise ValueError("min_pixel_presence must be in [0, 1]")
+    aoi.setdefault("lat", (aoi["bbox"][1] + aoi["bbox"][3]) / 2)
+    aoi.setdefault("lon", (aoi["bbox"][0] + aoi["bbox"][2]) / 2)
+    if not (
+        aoi["bbox"][1] <= aoi["lat"] <= aoi["bbox"][3]
+        and aoi["bbox"][0] <= aoi["lon"] <= aoi["bbox"][2]
+    ):
+        raise ValueError("AOI coordinates must lie inside bbox")
+    raster_dir = raster_root / region_id
+    out_csv = processed_dir / f"{region_id}_ndvi.csv"
+    meta_path = processed_dir / f"{region_id}_meta.json"
+    resolved_task_name = task_name or f"trendscope_{region_id}_mod13a3"
+
+    meta: dict = {
+        "dataset_id": "MOD13A3.061",
+        "layers": ["_1_km_monthly_NDVI", "_1_km_monthly_pixel_reliability"],
+        "qa_criteria": (
+            "pixel_reliability in {0, 1}"
+            if allow_marginal
+            else "pixel_reliability == 0 (Good); raw NDVI in [-2000, 10000], scale 0.0001"
+        ),
+        "processing_rules": {
+            "scale": NDVI_SCALE,
+            "fill_value": NDVI_FILL,
+            "valid_raw_range": [-2000, 10000],
+            "allow_marginal": allow_marginal,
+            "min_pixel_presence": min_pixel_presence,
+        },
+        "mask": {"min_pixel_presence": min_pixel_presence},
+        "aoi": aoi,
+        "date_range": {"start": start_date, "end": end_date},
+        "nasa_task_name": resolved_task_name,
+        "nasa_task_id": task_id,
+        "status": "pending",
+    }
+
+    # Bind both caches to the actual request. A reused slug must not silently
+    # reuse another geometry, date window, QA policy or AppEEARS task's rasters.
+    identity = {
+        "bbox": list(aoi["bbox"]),
+        "date_range": meta["date_range"],
+        "processing_rules": meta["processing_rules"],
+    }
+    request_path = raster_dir / "request.json"
+    if request_path.exists():
+        cached = json.loads(request_path.read_text(encoding="utf-8"))
+        if cached["identity"] != identity or (task_id and cached.get("task_id") != task_id):
+            raise ValueError("Raster cache belongs to a different request; use a new region/root")
+        task_id = task_id or cached.get("task_id")
+    elif raster_dir.exists() and any(raster_dir.glob("*.tif*")):
+        raise ValueError("Unbound raster cache; use a new region/root")
+    if meta_path.exists():
+        previous = json.loads(meta_path.read_text(encoding="utf-8"))
+        previous_identity = {
+            "bbox": previous["aoi"]["bbox"],
+            "date_range": previous["date_range"],
+            "processing_rules": previous.get("processing_rules"),
+        }
+        if previous_identity != identity or (task_id and previous.get("nasa_task_id") != task_id):
+            raise ValueError(
+                "Processed output belongs to a different request; use a new region/directory"
+            )
+    elif out_csv.exists():
+        raise ValueError("Existing CSV has no request manifest; use a new region/directory")
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    raster_dir.mkdir(parents=True, exist_ok=True)
+    request_path.write_text(json.dumps({"identity": identity, "task_id": task_id}, indent=2))
+
+    try:
+        resolved_task_id = task_id or submit_modis_ndvi_task(
+            token,
+            start_date=start_date,
+            end_date=end_date,
+            bbox=tuple(aoi["bbox"]),
+            task_name=resolved_task_name,
+        )
+        meta["nasa_task_id"] = resolved_task_id
+        request_path.write_text(
+            json.dumps({"identity": identity, "task_id": resolved_task_id}, indent=2)
+        )
+        download_appeears_rasters(token, resolved_task_id, raster_dir)
+
+        df = process_modis_rasters(
+            raster_dir=raster_dir,
+            out_csv=out_csv,
+            allow_marginal=allow_marginal,
+            region=region_id,
+            min_pixel_presence=min_pixel_presence,
+            start_ym=start_ym,
+            end_ym=end_ym,
+        )
+        grid_info = inspect_raster_metadata(raster_dir)
+        mean_cov = float(df["valid_fraction"].mean()) if not df.empty else 0.0
+        avail = int(df["raw_value"].notna().sum())
+        meta.update(grid_info)
+        meta["mask"]["eligible_pixel_count"] = df.attrs["eligible_pixel_count"]
+        meta["csv_sha256"] = hashlib.sha256(out_csv.read_bytes()).hexdigest()
+        meta["coverage"] = {
+            "months_total": len(df),
+            "months_available": avail,
+            "mean_valid_fraction": round(mean_cov, 4),
+        }
+        meta["status"] = "low_coverage" if avail == 0 or mean_cov < 0.25 else "ok"
+    except Exception as exc:
+        meta["status"] = "failed"
+        meta["error"] = str(exc)
+
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return meta_path
 
 
 # ---------------------------------------------------------------------------
@@ -403,19 +735,33 @@ def main(argv: list[str] | None = None) -> int:
     # 1) Process cached/downloaded MODIS MOD13A3.061 GeoTIFFs
     proc = sub.add_parser("modis-process", help="Process MODIS MOD13A3.061 GeoTIFFs to CSV")
     proc.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
-    proc.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
+    proc.add_argument("--out-csv", type=Path)
+    proc.add_argument("--region", default="nile_delta")
     proc.add_argument("--allow-marginal", action="store_true", help="Include QA=1 marginal pixels")
     proc.add_argument("--min-presence", type=float, default=0.8, help="Min temporal pixel validity")
-    proc.add_argument("--start-ym", default="2001-01", help="Start YYYY-MM for full calendar")
-    proc.add_argument("--end-ym", default="2024-12", help="End YYYY-MM for full calendar")
+    proc.add_argument("--start-ym", help="Start YYYY-MM for full calendar")
+    proc.add_argument("--end-ym", help="End YYYY-MM for full calendar")
+    proc.add_argument(
+        "--source-manifest", type=Path,
+        help="Original AOI fetch manifest; write a separate companion preprocessing manifest",
+    )
 
     # 2) Submit + download AppEEARS MOD13A3.061 task
     app = sub.add_parser("appeears", help="Submit & download MOD13A3.061 from NASA AppEEARS")
     app.add_argument("--start-date", default="01-01-2023", help="MM-DD-YYYY (short test first)")
     app.add_argument("--end-date", default="06-30-2023", help="MM-DD-YYYY")
+    app.add_argument("--region", default="nile_delta", help="Region slug (for non-random AOI)")
+    app.add_argument(
+        "--bbox", nargs=4, type=float, metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT")
+    )
+    app.add_argument("--random-seed", type=int, nargs="+", help="Seed(s) for random land AOI(s)")
+    app.add_argument("--size-deg", type=float, default=0.5, help="Random AOI width/height (deg)")
     app.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
-    app.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
+    app.add_argument("--out-csv", type=Path, help="Must be named <region>_ndvi.csv")
+    app.add_argument("--allow-marginal", action="store_true")
+    app.add_argument("--min-presence", type=float, default=0.8)
     app.add_argument("--task-id", help="Resume downloading an existing AppEEARS task_id")
+    app.add_argument("--task-name", help="Custom AppEEARS task name")
 
     # 3) Fetch NASA POWER monthly point series
     pwr = sub.add_parser("power", help="Fetch NASA POWER monthly time series to CSV")
@@ -432,15 +778,26 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "modis-process":
+        out_csv = args.out_csv or PROCESSED_DIR / f"{args.region}_ndvi.csv"
+        if args.source_manifest:
+            df = process_offline_modis_aoi(
+                args.source_manifest, args.raster_dir, out_csv, args.region,
+                args.min_presence, args.allow_marginal, args.start_ym, args.end_ym,
+            )
+            print(f"Verified {len(df)} monthly NDVI rows and companion AOI manifest -> {out_csv}")
+            return 0
+        if args.region != "nile_delta":
+            parser.error("Dynamic offline AOIs require --source-manifest for provenance handoff")
         df = process_modis_rasters(
             args.raster_dir,
-            args.out_csv,
+            out_csv,
             args.allow_marginal,
+            region=args.region,
             min_pixel_presence=args.min_presence,
             start_ym=args.start_ym,
             end_ym=args.end_ym,
         )
-        print(f"Exported {len(df)} monthly NDVI rows -> {args.out_csv}")
+        print(f"Exported {len(df)} monthly NDVI rows -> {out_csv}")
         return 0
 
     if args.command == "power":
@@ -470,15 +827,44 @@ def main(argv: list[str] | None = None) -> int:
                 raise SystemExit("Set APPEEARS_TOKEN or EARTHDATA_USER + EARTHDATA_PASS")
             token = appeears_login(user, pwd)
 
-        task_id = args.task_id or submit_modis_ndvi_task(
-            token, start_date=args.start_date, end_date=args.end_date
-        )
-        print(f"AppEEARS task_id: {task_id}")
-        files = download_appeears_rasters(token, task_id, args.raster_dir)
-        print(f"Downloaded {len(files)} GeoTIFFs -> {args.raster_dir}")
-        df = process_modis_rasters(args.raster_dir, args.out_csv)
-        print(f"Exported {len(df)} monthly NDVI rows -> {args.out_csv}")
-        return 0
+        if args.random_seed:
+            if len(args.random_seed) > 1 and (args.task_id or args.task_name or args.out_csv):
+                parser.error("task-id, task-name and out-csv require exactly one AOI")
+            aois = [
+                generate_random_aoi(seed=seed, size_deg=args.size_deg) for seed in args.random_seed
+            ]
+        else:
+            if args.region != "nile_delta" and args.bbox is None:
+                parser.error("A new --region requires --bbox")
+            bbox = tuple(args.bbox) if args.bbox else NILE_DELTA_BBOX
+            aois = [
+                {
+                    "region_id": args.region.lower(),
+                    "bbox": list(bbox),
+                    "polygon": bbox_to_polygon(bbox),
+                }
+            ]
+
+        failed = False
+        for aoi in aois:
+            if args.out_csv and args.out_csv.name != f"{aoi['region_id']}_ndvi.csv":
+                parser.error("out-csv must be named <region>_ndvi.csv to keep its manifest paired")
+            meta_path = run_modis_aoi(
+                token=token,
+                aoi=aoi,
+                start_date=args.start_date,
+                end_date=args.end_date,
+                min_pixel_presence=args.min_presence,
+                allow_marginal=args.allow_marginal,
+                task_id=args.task_id,
+                task_name=args.task_name,
+                raster_root=args.raster_dir,
+                processed_dir=args.out_csv.parent if args.out_csv else PROCESSED_DIR,
+            )
+            status = json.loads(meta_path.read_text(encoding="utf-8"))["status"]
+            failed |= status == "failed"
+            print(f"AOI {aoi['region_id']} ({status}) -> {meta_path}")
+        return int(failed)
 
     return 1
 

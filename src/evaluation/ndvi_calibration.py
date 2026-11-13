@@ -122,7 +122,7 @@ def evaluate_frame(frame, *, crosscheck=False):
         row.update({f"{method}_{key}": value for key, value in test.items()})
     ordinary, corrected = tests
     if ordinary["valid"]:
-        assert ordinary["p"] == result["trend"]["p_value"]
+        assert ordinary["p_stable"] == result["trend"]["p_value"]
         assert ordinary["tau"] == result["trend"]["tau"]
     if ordinary["valid"] and corrected["valid"]:
         assert ordinary["s"] == corrected["s"]

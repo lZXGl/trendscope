@@ -1,0 +1,26 @@
+{
+  "status": "prepared_local_only",
+  "repository": "https://github.com/lZXGl/trendscope",
+  "proposed_tag": "data-seed102-2001-2024-p60-v1",
+  "release_url": null,
+  "experimental_min_pixel_presence": 0.6,
+  "production_min_pixel_presence": 0.8,
+  "assets": [
+    {
+      "file": "seed102-core.tar.gz",
+      "bytes": 2983979,
+      "sha256": "3e9caca911dc12ace06423d76d42214c90dbd6bb3397a9219774745c2361556c",
+      "payload_files": 594,
+      "download_url": null,
+      "member_checksums": "seed102-core.SHA256SUMS"
+    },
+    {
+      "file": "seed102-vi-quality-supplement.tar.gz",
+      "bytes": 571502,
+      "sha256": "2bf66f25268ffea7d0d7bebd598803e227fc0a8c7fa80b12ff5c9939e54afd83",
+      "payload_files": 291,
+      "download_url": null,
+      "member_checksums": "seed102-vi-quality-supplement.SHA256SUMS"
+    }
+  ]
+}

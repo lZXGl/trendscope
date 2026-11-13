@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrendScopeJobStatus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "job_id", "status", "stage", "request", "nasa_task_id", "error", "retryable",
+    "result_file", "created_at", "updated_at"
+  ],
+  "properties": {
+    "job_id": { "type": "string", "pattern": "^aoi_[0-9a-f]{16}$" },
+    "status": { "enum": ["queued", "processing", "completed", "failed"] },
+    "stage": { "enum": [null, "checking_area", "waiting_for_nasa", "analysing"] },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bbox", "product", "start_date", "end_date", "allow_marginal",
+        "min_pixel_presence", "processing_version"
+      ],
+      "properties": {
+        "bbox": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } },
+        "product": { "type": "string", "minLength": 1 },
+        "start_date": { "type": "string", "pattern": "^\\d{2}-\\d{2}-\\d{4}$" },
+        "end_date": { "type": "string", "pattern": "^\\d{2}-\\d{2}-\\d{4}$" },
+        "allow_marginal": { "type": "boolean" },
+        "min_pixel_presence": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "processing_version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "nasa_task_id": { "type": ["string", "null"] },
+    "error": { "type": ["string", "null"] },
+    "retryable": { "type": "boolean" },
+    "result_file": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "minLength": 1 },
+    "updated_at": { "type": "string", "minLength": 1 }
+  }
+}

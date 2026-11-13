@@ -62,6 +62,57 @@ def test_build_writes_schema_valid_outputs(workspace):
     assert index[0]["file"] == "results/cairo_t2m.json"
     assert index[0]["region_name"] == "Cairo"
     assert index[0]["variable_name"] == "Air temperature"
+    assert index[0]["is_random"] is False
+    assert "bbox" not in index[0]
+
+
+def _write_aoi(processed: Path, region_id: str, status: str) -> None:
+    """Mimic fetch.run_modis_aoi: <region_id>_meta.json plus a processed CSV."""
+    meta = {
+        "aoi": {
+            "region_id": region_id,
+            "lat": -12.5,
+            "lon": 70.5591,
+            "bbox": [70.3091, -12.75, 70.8091, -12.25],
+        },
+        "status": status,
+    }
+    if status != "ok":
+        meta["error"] = "No pixels meet min_pixel_presence threshold"
+    (processed / f"{region_id}_meta.json").write_text(json.dumps(meta), encoding="utf-8")
+    rows = GOOD_ROWS.replace("cairo", region_id)
+    (processed / f"{region_id}_t2m.csv").write_text(HEADER + rows, encoding="utf-8")
+
+
+def test_random_region_is_built_from_its_meta_file(workspace):
+    _write_aoi(workspace["processed"], "aoi_s7", "ok")
+
+    index = _build(workspace)
+
+    assert index[0]["region"] == "aoi_s7"
+    assert index[0]["is_random"] is True
+    assert index[0]["region_name"] == "Random region (12.50°S, 70.56°E)"
+    assert index[0]["bbox"] == [70.3091, -12.75, 70.8091, -12.25]
+    assert validate_main([str(workspace["out"] / "results" / "aoi_s7_t2m.json")]) == 0
+    written_index = json.loads((workspace["out"] / "index.json").read_text(encoding="utf-8"))
+    validate_payload(written_index, INDEX_SCHEMA_PATH, "index.json")
+
+
+def test_failed_random_region_is_skipped_not_fatal(workspace, capsys):
+    (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
+    _write_aoi(workspace["processed"], "aoi_s42", "failed")
+
+    index = _build(workspace)
+
+    assert [entry["region"] for entry in index] == ["cairo"]
+    assert not (workspace["out"] / "results" / "aoi_s42_t2m.json").exists()
+    assert "SKIPPED: aoi_s42_t2m.csv" in capsys.readouterr().err
+
+
+def test_only_skipped_regions_is_an_error(workspace):
+    _write_aoi(workspace["processed"], "aoi_s42", "failed")
+    with pytest.raises(BuildError, match="was skipped"):
+        _build(workspace)
 
 
 def test_stub_results_are_flagged_as_mock(workspace):

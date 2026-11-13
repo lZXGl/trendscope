@@ -48,6 +48,44 @@ def load_catalogue(path: Path, required: set[str]) -> dict[str, dict]:
     return catalogue
 
 
+def _coordinate_label(lat: float, lon: float) -> str:
+    """Human-readable position, e.g. '50.61°N, 70.56°E'."""
+    return f"{abs(lat):.2f}°{'N' if lat >= 0 else 'S'}, {abs(lon):.2f}°{'E' if lon >= 0 else 'W'}"
+
+
+def load_random_regions(processed_dir: Path) -> tuple[dict[str, dict], dict[str, str]]:
+    """Find the pre-made random regions written by fetch.run_modis_aoi.
+
+    Each one has a data/processed/<region_id>_meta.json holding its position ("aoi") and a
+    "status". Returns (usable regions, skipped): regions whose status is "ok" are usable like
+    the config/regions.json entries; any other status goes to `skipped` with the reason, so
+    one failed NASA download never breaks the whole build.
+    """
+    usable: dict[str, dict] = {}
+    skipped: dict[str, str] = {}
+    for meta_path in sorted(processed_dir.glob("*_meta.json")):
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            aoi = meta["aoi"]
+            region_id = str(aoi["region_id"])
+            lat, lon = float(aoi["lat"]), float(aoi["lon"])
+            bbox = [float(value) for value in aoi["bbox"]]
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            raise BuildError(f"{meta_path.name}: not a valid AOI metadata file ({exc!r})") from exc
+        status = str(meta.get("status", "unknown"))
+        if status != "ok":
+            skipped[region_id] = f"status '{status}': {meta.get('error', 'no details')}"
+            continue
+        usable[region_id] = {
+            "name": f"Random region ({_coordinate_label(lat, lon)})",
+            "lat": lat,
+            "lon": lon,
+            "bbox": bbox,
+            "is_random": True,
+        }
+    return usable, skipped
+
+
 def read_processed_csv(path: Path) -> pd.DataFrame:
     """Load one processed CSV and reject anything that is not a clean monthly series."""
     try:
@@ -129,9 +167,11 @@ def index_entry(
 ) -> dict:
     """One index.json row: what exists and the headline facts, without the series."""
     meta = result["metadata"]
-    return {
+    region = regions[meta["region"]]
+    entry = {
         "region": meta["region"],
-        "region_name": regions[meta["region"]]["name"],
+        "region_name": region["name"],
+        "is_random": bool(region.get("is_random", False)),
         "lat": meta["lat"],
         "lon": meta["lon"],
         "variable": meta["variable"],
@@ -143,6 +183,9 @@ def index_entry(
         "significant": result["trend"]["significant"],
         "headline": result["verdict"]["headline"],
     }
+    if "bbox" in region:
+        entry["bbox"] = region["bbox"]
+    return entry
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -164,6 +207,8 @@ def build(
     """
     regions = load_catalogue(regions_path, {"name", "lat", "lon"})
     variables = load_catalogue(variables_path, {"name", "description"})
+    random_regions, skipped = load_random_regions(processed_dir)
+    regions = {**random_regions, **regions}  # a curated region wins over a random one
     csv_paths = sorted(processed_dir.glob("*.csv"))
     if not csv_paths:
         raise BuildError(f"No processed CSV files found in {processed_dir}")
@@ -171,6 +216,10 @@ def build(
     results: dict[str, dict] = {}
     index: list[dict] = []
     for csv_path in csv_paths:
+        skipped_region = next((r for r in skipped if csv_path.name.startswith(f"{r}_")), None)
+        if skipped_region:
+            print(f"SKIPPED: {csv_path.name} ({skipped[skipped_region]})", file=sys.stderr)
+            continue
         df = read_processed_csv(csv_path)
         try:
             result = build_result(df, regions)
@@ -187,6 +236,8 @@ def build(
         validate_payload(result, RESULT_SCHEMA_PATH, f"result built from {csv_path.name}")
         results[name] = result
         index.append(index_entry(result, regions, variables, f"results/{name}"))
+    if not results:
+        raise BuildError(f"Every processed CSV in {processed_dir} was skipped")
     validate_payload(index, INDEX_SCHEMA_PATH, "index.json")
 
     results_dir = out_dir / "results"

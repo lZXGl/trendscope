@@ -56,7 +56,9 @@ def test_process_modis_rasters_filters_qa_and_scales(tmp_path: Path):
         raster_dir / "MOD13A3.061__1_km_monthly_pixel_reliability_doy2023032_aid0001.tif", qa_feb
     )
 
-    df = process_modis_rasters(raster_dir=raster_dir, out_csv=out_csv, allow_marginal=False)
+    df = process_modis_rasters(
+        raster_dir=raster_dir, out_csv=out_csv, allow_marginal=False, min_pixel_presence=0.0
+    )
     assert list(df.columns) == [
         "date",
         "region",

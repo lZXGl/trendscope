@@ -223,9 +223,40 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
             ringPropagationSpeed={2}
             ringRepeatPeriod={1200}
             onGlobeReady={() => {
-              if (globeRef.current && activePin) {
-                globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.85 }, 0);
+              if (!globeRef.current) return;
+              const controls = globeRef.current.controls();
+              controls.minDistance = 130;
+              controls.maxDistance = 380;
+              if (activePin) {
+                globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.55 }, 0);
               }
+            }}
+            htmlElementsData={pins}
+            htmlLat="lat"
+            htmlLng="lon"
+            htmlAltitude={0.05}
+            htmlElement={(d) => {
+              const p = d as RegionPin;
+              const isSelected = p.region === selectedRegion;
+              const el = document.createElement("button");
+              el.type = "button";
+              el.textContent = p.name;
+              el.style.cssText = [
+                "padding: 3px 8px",
+                "border-radius: 9999px",
+                "font-size: 11px",
+                "font-weight: 600",
+                "white-space: nowrap",
+                "cursor: pointer",
+                "pointer-events: auto",
+                `transform: translate(${p.region === "cairo" ? "10%" : "-110%"}, ${p.region === "cairo" ? "10%" : "-110%"})`,
+                `background: ${isSelected ? "#0284c7" : "#ffffff"}`,
+                `color: ${isSelected ? "#ffffff" : "#0f172a"}`,
+                `border: 1px solid ${isSelected ? "#0369a1" : "#cbd5e1"}`,
+                "box-shadow: 0 2px 6px rgba(15,23,42,0.18)",
+              ].join(";");
+              el.onclick = () => onSelectRegion(p.region);
+              return el;
             }}
             onPointClick={(d) => onSelectRegion((d as RegionPin).region)}
           />

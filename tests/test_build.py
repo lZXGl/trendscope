@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from scripts.validate_schema import main as validate_main
@@ -26,11 +27,21 @@ def workspace(tmp_path: Path) -> dict[str, Path]:
         json.dumps({"cairo": {"name": "Cairo", "lat": 30.0444, "lon": 31.2357}}),
         encoding="utf-8",
     )
-    return {"processed": processed, "regions": regions, "out": tmp_path / "out"}
+    variables = tmp_path / "variables.json"
+    variables.write_text(
+        json.dumps({"T2M": {"name": "Air temperature", "description": "Monthly mean."}}),
+        encoding="utf-8",
+    )
+    return {
+        "processed": processed,
+        "regions": regions,
+        "variables": variables,
+        "out": tmp_path / "out",
+    }
 
 
 def _build(ws: dict[str, Path]) -> list[dict]:
-    return build(ws["processed"], ws["regions"], ws["out"])
+    return build(ws["processed"], ws["regions"], ws["out"], ws["variables"])
 
 
 def test_build_writes_schema_valid_outputs(workspace):
@@ -50,6 +61,7 @@ def test_build_writes_schema_valid_outputs(workspace):
     assert written_index == index
     assert index[0]["file"] == "results/cairo_t2m.json"
     assert index[0]["region_name"] == "Cairo"
+    assert index[0]["variable_name"] == "Air temperature"
 
 
 def test_stub_results_are_flagged_as_mock(workspace):
@@ -83,6 +95,7 @@ def test_stale_result_files_are_removed(workspace):
         (HEADER + "2020-01,cairo,T2M,warm,-1.0,degC,NASA POWER\n", "not numeric"),
         (HEADER + "2020-01,cairo,T2M,,,degC,NASA POWER\n", "every raw_value is missing"),
         (HEADER + "2020-01,atlantis,T2M,13.0,-1.0,degC,NASA POWER\n", "regions config"),
+        (HEADER + "2020-01,cairo,WS2M,3.0,0.1,m/s,NASA POWER\n", "variables config"),
     ],
 )
 def test_malformed_csv_is_rejected(workspace, content, message):
@@ -106,11 +119,41 @@ def test_schema_invalid_stats_output_fails_loudly(workspace, monkeypatch):
     assert not (workspace["out"] / "index.json").exists()
 
 
+def test_numpy_stats_output_is_converted_to_plain_json(workspace, monkeypatch):
+    (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
+    numpy_result = {
+        "trend": {
+            "method": "Mann-Kendall",
+            "sens_slope": np.float64(0.34),
+            "slope_unit": "degC/decade",
+            "p_value": np.float64(0.018),
+            "tau": np.float32(0.42),
+            "significant": np.bool_(True),
+            "autocorrected": np.bool_(True),
+        },
+        "verdict": {"headline": "Warming", "summary": "s", "caveats": np.array(["c"])},
+    }
+    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df: numpy_result)
+    index = _build(workspace)
+    assert index[0]["significant"] is True
+    result_path = workspace["out"] / "results" / "cairo_t2m.json"
+    assert validate_main([str(result_path)]) == 0
+
+
+def test_nan_in_stats_output_fails_loudly(workspace, monkeypatch):
+    (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
+    bad = {"trend": {"p_value": float("nan")}, "verdict": {}}
+    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df: bad)
+    with pytest.raises(ValueError, match="non-finite number at trend.p_value"):
+        _build(workspace)
+
+
 def test_cli_returns_nonzero_on_bad_input(workspace, capsys):
     (workspace["processed"] / "bad.csv").write_text("date,value\n2020-01,1\n", encoding="utf-8")
     args = [
         "--processed-dir", str(workspace["processed"]),
         "--regions", str(workspace["regions"]),
+        "--variables", str(workspace["variables"]),
         "--out-dir", str(workspace["out"]),
     ]
     assert main(args) == 1

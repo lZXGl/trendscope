@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "region": "cairo",
+    "lat": 30.0444,
+    "lon": 31.2357,
+    "variable": "T2M",
+    "unit": "degC",
+    "source": "NASA POWER (mock placeholder for frontend)",
+    "is_mock": true,
+    "date_range": {
+      "start": "2020-01",
+      "end": "2020-06"
+    }
+  },
+  "series": [
+    { "date": "2020-01", "raw": 13.4, "anomaly": -0.3 },
+    { "date": "2020-02", "raw": 14.8, "anomaly": 0.1 },
+    { "date": "2020-03", "raw": 17.9, "anomaly": 0.4 },
+    { "date": "2020-04", "raw": 21.5, "anomaly": 0.2 },
+    { "date": "2020-05", "raw": 25.8, "anomaly": 0.6 },
+    { "date": "2020-06", "raw": 28.9, "anomaly": 0.8 }
+  ],
+  "trend": {
+    "method": "Hamed-Rao Modified Mann-Kendall + Sen's Slope",
+    "sens_slope": 0.34,
+    "slope_unit": "degC/decade",
+    "p_value": 0.018,
+    "tau": 0.42,
+    "significant": true,
+    "autocorrected": true
+  },
+  "verdict": {
+    "headline": "Statistically significant warming trend detected (MOCK DATA)",
+    "summary": "Placeholder verdict for frontend development until stats.py outputs real NASA POWER results.",
+    "caveats": [
+      "Mock placeholder payload — replace with output from src/stats/stats.py before demo.",
+      "Point-level NASA POWER grid cell represents ~0.5x0.625 deg spatial resolution."
+    ]
+  }
+}

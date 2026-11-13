@@ -1,0 +1,20 @@
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Raw downloaded NASA payloads (keep processed & mock JSON tracked)
+data/raw/*.json
+data/raw/*.csv
+!data/raw/.gitkeep
+
+# Frontend
+src/web/node_modules/
+src/web/dist/
+
+# Env / OS
+.env
+.env.*
+.DS_Store

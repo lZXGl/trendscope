@@ -8,6 +8,8 @@ __pycache__/
 # Raw downloaded NASA payloads (keep processed & mock JSON tracked)
 data/raw/*.json
 data/raw/*.csv
+data/raw/rasters/*.tif
+data/raw/rasters/*.tiff
 !data/raw/.gitkeep
 
 # Frontend

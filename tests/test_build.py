@@ -10,6 +10,7 @@ from scripts.validate_schema import main as validate_main
 from src.pipeline.build import BuildError, build, main
 from src.pipeline.validation import INDEX_SCHEMA_PATH, SchemaError, validate_payload
 
+MOCK_JSON = Path(__file__).resolve().parent.parent / "data" / "mock" / "results.mock.json"
 HEADER = "date,region,variable,raw_value,anomaly,unit,source\n"
 GOOD_ROWS = (
     "2020-01,cairo,T2M,13.0,-1.0,degC,NASA POWER\n"
@@ -37,11 +38,56 @@ def workspace(tmp_path: Path) -> dict[str, Path]:
         "regions": regions,
         "variables": variables,
         "out": tmp_path / "out",
+        "jobs": tmp_path / "jobs",
     }
 
 
 def _build(ws: dict[str, Path]) -> list[dict]:
-    return build(ws["processed"], ws["regions"], ws["out"], ws["variables"])
+    return build(ws["processed"], ws["regions"], ws["out"], ws["variables"], ws["jobs"])
+
+
+def _write_job_result(jobs_dir: Path, job_id: str, with_status: bool = True) -> dict:
+    """Mimic a finished on-demand job in a LocalJobStore folder."""
+    result = json.loads(MOCK_JSON.read_text(encoding="utf-8"))
+    result["metadata"].update(region=job_id, variable="T2M", lat=-12.5, lon=70.5591)
+    del result["metadata"]["is_mock"]
+    (jobs_dir / "results").mkdir(parents=True, exist_ok=True)
+    (jobs_dir / "results" / f"{job_id}.json").write_text(json.dumps(result), encoding="utf-8")
+    if with_status:
+        job = {"job_id": job_id, "request": {"bbox": [70.3091, -12.75, 70.8091, -12.25]}}
+        (jobs_dir / "jobs").mkdir(parents=True, exist_ok=True)
+        (jobs_dir / "jobs" / f"{job_id}.json").write_text(json.dumps(job), encoding="utf-8")
+    return result
+
+
+def test_finished_job_result_is_published_where_the_frontend_loads_it(workspace):
+    (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
+    job_id = "aoi_0123456789abcdef"
+    result = _write_job_result(workspace["jobs"], job_id)
+
+    index = _build(workspace)
+
+    published = workspace["out"] / "results" / f"{job_id}.json"  # the job's result_file path
+    assert json.loads(published.read_text(encoding="utf-8")) == result
+    entry = next(item for item in index if item["region"] == job_id)
+    assert entry["file"] == f"results/{job_id}.json"
+    assert entry["region_name"] == "Custom area (12.50°S, 70.56°E)"
+    assert entry["bbox"] == [70.3091, -12.75, 70.8091, -12.25]
+    assert entry["is_random"] is False
+    assert entry["headline"] == result["verdict"]["headline"]
+
+
+def test_job_results_alone_are_enough_to_build(workspace):
+    _write_job_result(workspace["jobs"], "aoi_0123456789abcdef", with_status=False)
+    index = _build(workspace)
+    assert len(index) == 1 and "bbox" not in index[0]
+
+
+def test_schema_invalid_job_result_fails_the_build(workspace):
+    (workspace["jobs"] / "results").mkdir(parents=True)
+    (workspace["jobs"] / "results" / "aoi_bad.json").write_text('{"trend": {}}', encoding="utf-8")
+    with pytest.raises(SchemaError, match="job result aoi_bad.json"):
+        _build(workspace)
 
 
 def test_build_writes_schema_valid_outputs(workspace):
@@ -205,6 +251,7 @@ def test_cli_returns_nonzero_on_bad_input(workspace, capsys):
         "--processed-dir", str(workspace["processed"]),
         "--regions", str(workspace["regions"]),
         "--variables", str(workspace["variables"]),
+        "--jobs-dir", str(workspace["jobs"]),
         "--out-dir", str(workspace["out"]),
     ]
     assert main(args) == 1

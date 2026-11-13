@@ -23,6 +23,7 @@ PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 REGIONS_PATH = ROOT_DIR / "config" / "regions.json"
 VARIABLES_PATH = ROOT_DIR / "config" / "variables.json"
 OUT_DIR = ROOT_DIR / "src" / "web" / "public" / "data"
+JOBS_DIR = ROOT_DIR / "data" / "jobs"  # written by src.pipeline.aoi_job (LocalJobStore)
 
 CSV_COLUMNS = ["date", "region", "variable", "raw_value", "anomaly", "unit", "source"]
 DATE_PATTERN = r"\d{4}-(0[1-9]|1[0-2])"
@@ -188,6 +189,27 @@ def index_entry(
     return entry
 
 
+def load_job_results(jobs_dir: Path) -> list[tuple[str, dict, list[float] | None]]:
+    """Finished on-demand jobs: (job_id, result, bbox) for each <jobs_dir>/results/<job_id>.json.
+
+    The result was already produced by the real statistics and validated when it was cached,
+    so it is published as it is. The bbox comes from the job status file when there is one.
+    """
+    found = []
+    for result_path in sorted((jobs_dir / "results").glob("*.json")):
+        job_id = result_path.stem
+        try:
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            job_path = jobs_dir / "jobs" / f"{job_id}.json"
+            job = json.loads(job_path.read_text(encoding="utf-8")) if job_path.exists() else {}
+        except json.JSONDecodeError as exc:
+            raise BuildError(f"job {job_id}: unreadable JSON ({exc})") from exc
+        validate_payload(result, RESULT_SCHEMA_PATH, f"job result {result_path.name}")
+        bbox = job.get("request", {}).get("bbox")
+        found.append((job_id, result, [float(value) for value in bbox] if bbox else None))
+    return found
+
+
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False)
@@ -199,8 +221,13 @@ def build(
     regions_path: Path = REGIONS_PATH,
     out_dir: Path = OUT_DIR,
     variables_path: Path = VARIABLES_PATH,
+    jobs_dir: Path = JOBS_DIR,
 ) -> list[dict]:
     """Build and validate everything in memory, then write. Returns the index entries.
+
+    Sources: the processed CSVs (curated and pre-made random regions) and the finished
+    on-demand job results in `jobs_dir`, published as results/<job_id>.json, which is the
+    `result_file` path the job status gives the frontend.
 
     Nothing is written unless every input is valid, so a failed build never leaves
     half-updated output behind.
@@ -210,7 +237,8 @@ def build(
     random_regions, skipped = load_random_regions(processed_dir)
     regions = {**random_regions, **regions}  # a curated region wins over a random one
     csv_paths = sorted(processed_dir.glob("*.csv"))
-    if not csv_paths:
+    job_results = load_job_results(jobs_dir)
+    if not csv_paths and not job_results:
         raise BuildError(f"No processed CSV files found in {processed_dir}")
 
     results: dict[str, dict] = {}
@@ -236,6 +264,23 @@ def build(
         validate_payload(result, RESULT_SCHEMA_PATH, f"result built from {csv_path.name}")
         results[name] = result
         index.append(index_entry(result, regions, variables, f"results/{name}"))
+
+    for job_id, result, bbox in job_results:
+        meta = result["metadata"]
+        if meta["variable"] not in variables:
+            raise BuildError(
+                f"job {job_id}: variable '{meta['variable']}' is not in the variables config"
+            )
+        label = _coordinate_label(meta["lat"], meta["lon"])
+        area = {"name": f"Custom area ({label})"}
+        if bbox:
+            area["bbox"] = bbox
+        name = f"{job_id}.json"
+        results[name] = result
+        index.append(
+            index_entry(result, {meta["region"]: area}, variables, f"results/{name}")
+        )
+
     if not results:
         raise BuildError(f"Every processed CSV in {processed_dir} was skipped")
     validate_payload(index, INDEX_SCHEMA_PATH, "index.json")
@@ -264,10 +309,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--regions", type=Path, default=REGIONS_PATH)
     parser.add_argument("--variables", type=Path, default=VARIABLES_PATH)
     parser.add_argument("--out-dir", type=Path, default=OUT_DIR)
+    parser.add_argument("--jobs-dir", type=Path, default=JOBS_DIR)
     args = parser.parse_args(argv)
 
     try:
-        index = build(args.processed_dir, args.regions, args.out_dir, args.variables)
+        index = build(
+            args.processed_dir, args.regions, args.out_dir, args.variables, args.jobs_dir
+        )
     except ValueError as exc:  # BuildError and SchemaError
         print(f"BUILD FAILED: {exc}", file=sys.stderr)
         return 1

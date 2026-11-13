@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Globe, { type GlobeMethods } from "react-globe.gl";
+import * as THREE from "three";
 import type { TrendIndexItem } from "../types/trend";
 
 interface GlobePanelProps {
@@ -200,21 +201,27 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
           </svg>
         </div>
       ) : (
-        <div ref={containerRef} className="relative h-[280px] w-full bg-[#F1F5F9]">
+        <div ref={containerRef} className="relative h-[280px] w-full bg-[#E0F2FE] flex items-center justify-center">
           <Globe
             ref={globeRef}
             width={size.width}
             height={size.height}
-            backgroundColor="rgba(241, 245, 249, 1)"
+            backgroundColor="#E0F2FE"
+            globeMaterial={new THREE.MeshPhongMaterial({ color: "#93c5fd" })}
             globeImageUrl={EARTH_DAY_TEXTURE}
-            atmosphereColor="#0ea5e9"
+            atmosphereColor="#0284c7"
             atmosphereAltitude={0.14}
             pointsData={pins}
             pointLat="lat"
             pointLng="lon"
             pointColor={(d) => ((d as RegionPin).region === selectedRegion ? "#0284c7" : "#059669")}
-            pointRadius={(d) => ((d as RegionPin).region === selectedRegion ? 0.7 : 0.45)}
-            pointAltitude={0.03}
+            pointRadius={(d) => ((d as RegionPin).region === selectedRegion ? 0.9 : 0.6)}
+            pointAltitude={0.04}
+            onGlobeReady={() => {
+              if (globeRef.current && activePin) {
+                globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.5 }, 0);
+              }
+            }}
             onPointClick={(d) => onSelectRegion((d as RegionPin).region)}
           />
         </div>

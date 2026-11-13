@@ -1,40 +1,40 @@
 {
   "metadata": {
-    "region": "cairo",
-    "lat": 30.0444,
-    "lon": 31.2357,
-    "variable": "T2M",
-    "unit": "degC",
-    "source": "NASA POWER (mock placeholder for frontend)",
+    "region": "nile_delta",
+    "lat": 30.95,
+    "lon": 31.0,
+    "variable": "NDVI",
+    "unit": "NDVI (dimensionless, -0.2 to 1.0)",
+    "source": "NASA MODIS MOD13A3.061 (mock placeholder for frontend)",
     "is_mock": true,
     "date_range": {
-      "start": "2020-01",
-      "end": "2020-06"
+      "start": "2023-01",
+      "end": "2023-06"
     }
   },
   "series": [
-    { "date": "2020-01", "raw": 13.4, "anomaly": -0.3 },
-    { "date": "2020-02", "raw": 14.8, "anomaly": 0.1 },
-    { "date": "2020-03", "raw": 17.9, "anomaly": 0.4 },
-    { "date": "2020-04", "raw": 21.5, "anomaly": 0.2 },
-    { "date": "2020-05", "raw": 25.8, "anomaly": 0.6 },
-    { "date": "2020-06", "raw": 28.9, "anomaly": 0.8 }
+    { "date": "2023-01", "raw": 0.58, "anomaly": 0.02 },
+    { "date": "2023-02", "raw": 0.62, "anomaly": 0.03 },
+    { "date": "2023-03", "raw": 0.55, "anomaly": 0.01 },
+    { "date": "2023-04", "raw": 0.44, "anomaly": -0.01 },
+    { "date": "2023-05", "raw": 0.39, "anomaly": -0.02 },
+    { "date": "2023-06", "raw": 0.48, "anomaly": 0.01 }
   ],
   "trend": {
     "method": "Hamed-Rao Modified Mann-Kendall + Sen's Slope",
-    "sens_slope": 0.34,
-    "slope_unit": "degC/decade",
-    "p_value": 0.018,
-    "tau": 0.42,
+    "sens_slope": -0.012,
+    "slope_unit": "NDVI/decade",
+    "p_value": 0.024,
+    "tau": -0.31,
     "significant": true,
     "autocorrected": true
   },
   "verdict": {
-    "headline": "Statistically significant warming trend detected (MOCK DATA)",
-    "summary": "Placeholder verdict for frontend development until stats.py outputs real NASA POWER results.",
+    "headline": "Statistically significant vegetation change detected in Nile Delta (MOCK DATA)",
+    "summary": "Placeholder verdict for frontend development until stats.py outputs real MOD13A3.061 results.",
     "caveats": [
       "Mock placeholder payload — replace with output from src/stats/stats.py before demo.",
-      "Point-level NASA POWER grid cell represents ~0.5x0.625 deg spatial resolution."
+      "Filtered to MOD13A3.061 pixel_reliability == 0 (Good) at 1 km resolution."
     ]
   }
 }

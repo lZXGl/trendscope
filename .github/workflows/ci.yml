@@ -20,3 +20,17 @@ jobs:
         run: uv run python scripts/validate_schema.py data/mock/results.mock.json
       - name: Run tests
         run: uv run pytest -v
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - name: Typecheck and build web
+        if: hashFiles('src/web/package.json') != ''
+        working-directory: src/web
+        run: npm ci && npx tsc --noEmit && npm run build

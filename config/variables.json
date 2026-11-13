@@ -1,0 +1,14 @@
+{
+  "T2M": {
+    "name": "Air temperature",
+    "description": "Monthly mean air temperature 2 metres above the ground."
+  },
+  "PRECTOTCORR": {
+    "name": "Rainfall",
+    "description": "Monthly mean precipitation rate (bias-corrected)."
+  },
+  "NDVI": {
+    "name": "Vegetation greenness (NDVI)",
+    "description": "Satellite vegetation index: higher values mean denser, healthier plant cover."
+  }
+}

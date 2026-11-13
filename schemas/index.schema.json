@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrendScopeIndex",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "region", "region_name", "lat", "lon",
+      "variable", "variable_name", "variable_description",
+      "unit", "source", "file", "significant", "headline"
+    ],
+    "properties": {
+      "region": { "type": "string", "minLength": 1 },
+      "region_name": { "type": "string", "minLength": 1 },
+      "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+      "lon": { "type": "number", "minimum": -180, "maximum": 180 },
+      "variable": { "type": "string", "minLength": 1 },
+      "variable_name": { "type": "string", "minLength": 1 },
+      "variable_description": { "type": "string", "minLength": 1 },
+      "unit": { "type": "string", "minLength": 1 },
+      "source": { "type": "string", "minLength": 1 },
+      "file": { "type": "string", "pattern": "^results/[^/]+\\.json$" },
+      "significant": { "type": "boolean" },
+      "headline": { "type": "string", "minLength": 1 }
+    }
+  }
+}

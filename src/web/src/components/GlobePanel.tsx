@@ -18,12 +18,56 @@ interface RegionPin {
 
 const EARTH_DAY_TEXTURE = "https://unpkg.com/three-globe/example/img/earth-day.jpg";
 
-// Map lon [24..36], lat [22..33] (Egypt & Nile Delta) into SVG 360x260
+// Map lon [24.5..35.5], lat [22..32.5] (Egypt & Nile Delta) into SVG 360x260
 function projectEgypt(lat: number, lon: number) {
   const x = ((lon - 24.5) / (35.5 - 24.5)) * 360;
   const y = ((32.5 - lat) / (32.5 - 22.0)) * 260;
   return { x, y };
 }
+
+function toSvgPath(coords: [number, number][], close = false): string {
+  const pts = coords.map(([lat, lon]) => {
+    const { x, y } = projectEgypt(lat, lon);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return `M ${pts.join(" L ")}${close ? " Z" : ""}`;
+}
+
+const EGYPT_COAST: [number, number][] = [
+  [22.0, 25.0],
+  [31.5, 25.1],
+  [31.3, 27.2],
+  [30.9, 28.9],
+  [31.2, 29.9],
+  [31.55, 31.1],
+  [31.25, 32.3],
+  [31.1, 33.8],
+  [31.3, 34.2],
+  [29.5, 34.9],
+  [27.8, 34.3],
+  [29.95, 32.55],
+  [27.2, 33.85],
+  [24.5, 35.2],
+  [22.0, 36.8],
+];
+
+const NILE_RIVER: [number, number][] = [
+  [22.0, 31.3],
+  [24.1, 32.9],
+  [25.7, 32.6],
+  [27.2, 31.2],
+  [28.1, 30.75],
+  [29.1, 31.1],
+  [30.05, 31.23],
+  [30.2, 31.15],
+];
+
+const NILE_DELTA_FAN: [number, number][] = [
+  [30.15, 31.15],
+  [31.2, 30.0],
+  [31.55, 31.1],
+  [31.25, 32.25],
+];
 
 export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanelProps) {
   const [mode, setMode] = useState<"map" | "globe">("map");
@@ -130,28 +174,26 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
               );
             })}
 
-            {/* Simplified Egypt landmass & Nile */}
+            {/* Geographically projected Egypt landmass, Nile River & Delta */}
             <path
-              d="M 16 260 L 16 55 L 70 46 L 145 48 L 210 34 L 255 44 L 285 68 L 315 115 L 348 195 L 348 260 Z"
+              d={toSvgPath(EGYPT_COAST, true)}
               fill="#F8FAFC"
               stroke="#CBD5E1"
               strokeWidth={1.2}
             />
-            {/* Nile River & Delta */}
             <path
-              d="M 238 260 Q 228 195 215 135 Q 214 95 212 62 M 212 62 L 185 38 M 212 62 L 242 40"
+              d={toSvgPath(NILE_DELTA_FAN, true)}
+              fill="#BBF7D0"
+              fillOpacity={0.7}
+              stroke="#10B981"
+              strokeWidth={1}
+            />
+            <path
+              d={toSvgPath(NILE_RIVER)}
               fill="none"
               stroke="#38BDF8"
               strokeWidth={2}
               strokeLinecap="round"
-            />
-            {/* Nile Delta agricultural fan */}
-            <path
-              d="M 212 64 L 184 42 Q 212 33 242 42 Z"
-              fill="#BBF7D0"
-              fillOpacity={0.65}
-              stroke="#10B981"
-              strokeWidth={1}
             />
 
             {/* Region Pins */}

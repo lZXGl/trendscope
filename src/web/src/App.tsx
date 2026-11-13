@@ -137,6 +137,14 @@ export function App() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className="lg:col-span-4 space-y-4 reveal-card">
+              {items.length > 0 && activeItem && (
+                <GlobePanel
+                  items={items}
+                  selectedRegion={activeItem.region}
+                  onSelectRegion={handleRegionSelect}
+                />
+              )}
+
               <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -187,14 +195,6 @@ export function App() {
                   </div>
                 </div>
               </div>
-
-              {items.length > 0 && activeItem && (
-                <GlobePanel
-                  items={items}
-                  selectedRegion={activeItem.region}
-                  onSelectRegion={handleRegionSelect}
-                />
-              )}
             </div>
 
             <div className="lg:col-span-8 space-y-4 reveal-card">

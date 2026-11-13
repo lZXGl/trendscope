@@ -36,6 +36,56 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
     const values = result.series.map((p) => (mode === "anomaly" ? p.anomaly : p.raw));
     const accent = mode === "anomaly" ? "#0284c7" : "#059669";
 
+    // Compute Sen's slope trend line anchored at the series median
+    const validPairs = values
+      .map((v, idx) => (typeof v === "number" ? { idx, v } : null))
+      .filter((x): x is { idx: number; v: number } => x !== null);
+    const perMonthSlope = result.trend.slope_unit.includes("year")
+      ? result.trend.sens_slope / 12
+      : result.trend.slope_unit.includes("decade")
+        ? result.trend.sens_slope / 120
+        : result.trend.sens_slope;
+    let trendLine: (number | null)[] = [];
+    if (mode === "anomaly" && validPairs.length >= 2) {
+      const midIdx = validPairs[Math.floor(validPairs.length / 2)].idx;
+      const sortedVals = [...validPairs].map((p) => p.v).sort((a, b) => a - b);
+      const medianVal = sortedVals[Math.floor(sortedVals.length / 2)];
+      trendLine = values.map((_, idx) =>
+        Number((medianVal + perMonthSlope * (idx - midIdx)).toFixed(5)),
+      );
+    }
+
+    const chartSeries: echarts.SeriesOption[] = [
+      {
+        name: mode === "anomaly" ? "Monthly Anomaly" : "Raw Observation",
+        type: "line",
+        data: values,
+        connectNulls: false,
+        smooth: false,
+        showSymbol: dates.length <= 24,
+        symbolSize: 6,
+        lineStyle: { width: 2, color: accent },
+        itemStyle: { color: accent },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: mode === "anomaly" ? "rgba(2,132,199,0.16)" : "rgba(5,150,105,0.16)" },
+            { offset: 1, color: "rgba(255,255,255,0)" },
+          ]),
+        },
+      },
+    ];
+
+    if (trendLine.length > 0) {
+      chartSeries.push({
+        name: "Sen's Slope Trend",
+        type: "line",
+        data: trendLine,
+        showSymbol: false,
+        lineStyle: { width: 2, type: "dashed", color: "#0f172a" },
+        itemStyle: { color: "#0f172a" },
+      });
+    }
+
     chart.setOption({
       animationDuration: 450,
       grid: { top: 28, right: 20, bottom: compact ? 36 : 56, left: 54 },
@@ -72,26 +122,8 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
               fillerColor: "rgba(2, 132, 199, 0.12)",
             },
           ],
-      series: [
-        {
-          name: mode === "anomaly" ? "Monthly Anomaly" : "Raw Observation",
-          type: "line",
-          data: values,
-          connectNulls: false,
-          smooth: false,
-          showSymbol: dates.length <= 24,
-          symbolSize: 6,
-          lineStyle: { width: 2, color: accent },
-          itemStyle: { color: accent },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: mode === "anomaly" ? "rgba(2,132,199,0.16)" : "rgba(5,150,105,0.16)" },
-              { offset: 1, color: "rgba(255,255,255,0)" },
-            ]),
-          },
-        },
-      ],
-    });
+      series: chartSeries,
+    }, true);
   }, [result, mode, compact]);
 
   return (

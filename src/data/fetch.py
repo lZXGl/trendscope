@@ -357,11 +357,41 @@ def main(argv: list[str] | None = None) -> int:
     app.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "ndvi_monthly.csv")
     app.add_argument("--task-id", help="Resume downloading an existing AppEEARS task_id")
 
+    # 3) Fetch NASA POWER monthly point series
+    pwr = sub.add_parser("power", help="Fetch NASA POWER monthly time series to CSV")
+    pwr.add_argument(
+        "--region", default="cairo", help="Region slug (must match config/regions.json)"
+    )
+    pwr.add_argument("--lat", type=float, default=30.0444, help="Latitude")
+    pwr.add_argument("--lon", type=float, default=31.2357, help="Longitude")
+    pwr.add_argument("--vars", nargs="+", default=["T2M", "PRECTOTCORR"], help="POWER variables")
+    pwr.add_argument("--start", type=int, default=2001, help="Start year")
+    pwr.add_argument("--end", type=int, default=2024, help="End year")
+    pwr.add_argument("--force", action="store_true", help="Ignore local cache")
+
     args = parser.parse_args(argv)
 
     if args.command == "modis-process":
         df = process_modis_rasters(args.raster_dir, args.out_csv, args.allow_marginal)
         print(f"Exported {len(df)} monthly NDVI rows -> {args.out_csv}")
+        return 0
+
+    if args.command == "power":
+        PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+        for var in args.vars:
+            payload = fetch_power_raw(
+                region=args.region,
+                lat=args.lat,
+                lon=args.lon,
+                variable=var,
+                start_year=args.start,
+                end_year=args.end,
+                force=args.force,
+            )
+            df = parse_power_payload(payload, region=args.region, variable=var)
+            out_path = PROCESSED_DIR / f"{args.region.lower()}_{var.lower()}.csv"
+            df.to_csv(out_path, index=False)
+            print(f"Saved {len(df)} rows -> {out_path}")
         return 0
 
     if args.command == "appeears":

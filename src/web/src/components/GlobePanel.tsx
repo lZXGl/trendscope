@@ -70,7 +70,7 @@ const NILE_DELTA_FAN: [number, number][] = [
 ];
 
 export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanelProps) {
-  const [mode, setMode] = useState<"map" | "globe">("map");
+  const [mode, setMode] = useState<"map" | "globe">("globe");
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [size, setSize] = useState({ width: 380, height: 280 });

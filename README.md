@@ -68,6 +68,11 @@ uv run python -m src.pipeline.aoi_job run --job-id aoi_<id>
   validates the result against `schemas/trend_result.schema.json`, then caches it.
 - Status files follow [`schemas/job_status.schema.json`](schemas/job_status.schema.json):
   `queued`, `processing`, `completed`, `failed` (with `error` and `retryable`).
+- `create` also takes `--start-date` and `--end-date` (MM-DD-YYYY); different dates give a
+  different job id.
+- `python -m src.pipeline.build` publishes every finished job result as
+  `src/web/public/data/results/<job_id>.json` (the job's `result_file`) and lists it in
+  `index.json` as "Custom area (…)".
 - Files go to `data/jobs/` (git-ignored). Areas must be 0.1–2.0 degrees wide and fully on land.
 - `run` needs `src/stats/stats.py`, which is still on `feat/stats`.
 

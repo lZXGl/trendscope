@@ -19,7 +19,12 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from src.pipeline.aoi_request import AoiRequest, InvalidRequest
+from src.pipeline.aoi_request import (
+    DEFAULT_END_DATE,
+    DEFAULT_START_DATE,
+    AoiRequest,
+    InvalidRequest,
+)
 from src.pipeline.job_store import JobStore, LocalJobStore
 from src.pipeline.validation import RESULT_SCHEMA_PATH, SCHEMAS_DIR, validate_payload
 
@@ -224,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     create = commands.add_parser("create", help="create (or reuse) the job for an area")
     create.add_argument("--bbox", type=float, nargs=4, required=True,
                         metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT"))
+    create.add_argument("--start-date", default=DEFAULT_START_DATE, help="MM-DD-YYYY")
+    create.add_argument("--end-date", default=DEFAULT_END_DATE, help="MM-DD-YYYY")
     run = commands.add_parser("run", help="run a queued job to completion")
     run.add_argument("--job-id", required=True)
     run.add_argument("--work-dir", type=Path, help="scratch folder for rasters (default: temp)")
@@ -232,7 +239,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "create":
         try:
-            job = create_or_reuse_job(store, AoiRequest(bbox=tuple(args.bbox)))
+            request = AoiRequest(
+                bbox=tuple(args.bbox), start_date=args.start_date, end_date=args.end_date
+            )
+            job = create_or_reuse_job(store, request)
         except InvalidRequest as exc:
             print(f"INVALID REQUEST: {exc}", file=sys.stderr)
             return 1

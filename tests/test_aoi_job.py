@@ -88,6 +88,26 @@ def test_invalid_areas_are_rejected(bbox):
         AoiRequest(bbox=bbox)
 
 
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [("2001-01-01", "12-31-2024"), ("1-1-2001", "12-31-2024"), ("02-30-2001", "12-31-2024"),
+     ("12-31-2024", "01-01-2001")],
+)
+def test_invalid_dates_are_rejected(start, end):
+    with pytest.raises(InvalidRequest):
+        AoiRequest(bbox=BBOX, start_date=start, end_date=end)
+
+
+def test_cli_create_uses_custom_dates(tmp_path, capsys):
+    args = ["--store-dir", str(tmp_path), "create", "--bbox", *map(str, BBOX),
+            "--start-date", "06-01-2023", "--end-date", "08-31-2023"]
+    assert main(args) == 0
+    job = json.loads(capsys.readouterr().out)
+    assert job["request"]["start_date"] == "06-01-2023"
+    assert job["request"]["end_date"] == "08-31-2023"
+    assert job["job_id"] != AoiRequest(bbox=BBOX).job_id()
+
+
 def test_job_runs_end_to_end_and_caches_the_result(store, tmp_path):
     nasa = FakeNasa()
     job = create_or_reuse_job(store, AoiRequest(bbox=BBOX))

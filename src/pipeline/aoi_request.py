@@ -6,7 +6,9 @@ pandas, rasterio or the statistics libraries.
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, dataclass
+from datetime import datetime
 
 # Bump when the NASA processing or the statistics change in a way that makes old cached
 # results wrong. A new version gives every request a new fingerprint (a fresh cache).
@@ -47,6 +49,16 @@ def normalise_bbox(bbox: list[float] | tuple[float, ...]) -> tuple[float, float,
     return min_lon, min_lat, max_lon, max_lat
 
 
+def _parse_date(value: str, name: str) -> datetime:
+    """Dates are MM-DD-YYYY with leading zeros, so equal dates always have equal text."""
+    if not isinstance(value, str) or not re.fullmatch(r"\d{2}-\d{2}-\d{4}", value):
+        raise InvalidRequest(f"{name} must be MM-DD-YYYY, got {value!r}")
+    try:
+        return datetime.strptime(value, "%m-%d-%Y")
+    except ValueError as exc:
+        raise InvalidRequest(f"{name} is not a real date: {value}") from exc
+
+
 @dataclass(frozen=True)
 class AoiRequest:
     """Everything that decides the result. Two equal requests share one job and one result."""
@@ -65,6 +77,8 @@ class AoiRequest:
             raise InvalidRequest(f"unsupported product '{self.product}'; only {PRODUCT}")
         if not (0 < self.min_pixel_presence <= 1):
             raise InvalidRequest("min_pixel_presence must be in (0, 1]")
+        if _parse_date(self.start_date, "start_date") >= _parse_date(self.end_date, "end_date"):
+            raise InvalidRequest("start_date must be before end_date")
 
     @property
     def centre(self) -> tuple[float, float]:

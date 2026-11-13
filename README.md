@@ -56,6 +56,21 @@ with `"status": "ok"` is added automatically (no `config/regions.json` entry nee
 `index.json` with `"is_random": true` and its `bbox`. Any other status is skipped with a
 `SKIPPED:` line, so one failed NASA download does not break the build.
 
+## On-demand analysis of a user-selected area (glue only, no hosting yet)
+```bash
+# needs APPEEARS_TOKEN, or EARTHDATA_USER + EARTHDATA_PASS, in the environment
+uv run python -m src.pipeline.aoi_job create --bbox 30.7 30.7 31.2 31.2   # prints the job id
+uv run python -m src.pipeline.aoi_job run --job-id aoi_<id>
+```
+- A request (area, product, dates, QA settings, processing version) has a fingerprint, which is
+  the job id **and** the cache key: the same request reuses a pending job or a finished result.
+- `run` calls `fetch.run_modis_aoi`, validates the monthly series, calls `stats.analyze_trend`,
+  validates the result against `schemas/trend_result.schema.json`, then caches it.
+- Status files follow [`schemas/job_status.schema.json`](schemas/job_status.schema.json):
+  `queued`, `processing`, `completed`, `failed` (with `error` and `retryable`).
+- Files go to `data/jobs/` (git-ignored). Areas must be 0.1–2.0 degrees wide and fully on land.
+- `run` needs `src/stats/stats.py`, which is still on `feat/stats`.
+
 Until `src/stats/stats.py` lands, the trend and verdict come from `src/pipeline/stats_stub.py`:
 results carry `metadata.is_mock = true` and "(MOCK)" in the headline. Switch to the real module
 in `src/pipeline/analysis.py` (one import, one flag).

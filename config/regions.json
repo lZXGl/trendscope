@@ -1,4 +1,12 @@
 {
-  "cairo": { "name": "Cairo", "lat": 30.0444, "lon": 31.2357 },
-  "nile_delta": { "name": "Nile Delta", "lat": 30.95, "lon": 31.0 }
+  "cairo": {
+    "name": "Cairo",
+    "lat": 30.0444,
+    "lon": 31.2357
+  },
+  "nile_delta": {
+    "name": "Nile Delta",
+    "lat": 30.95,
+    "lon": 31.0
+  }
 }

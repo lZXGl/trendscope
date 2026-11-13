@@ -16,8 +16,19 @@ export function makeBboxAround(lat: number, lon: number, sizeDeg = 0.5): [number
   return [minLon, minLat, maxLon, maxLat];
 }
 
+// Verified interior continental land boxes [minLat, maxLat, minLon, maxLon] so random picks stay on land
+const LAND_BOXES: readonly [number, number, number, number][] = [
+  [33, 48, -118, -82],   // North America interior
+  [-18, -3, -68, -44],   // South America (Amazon / Cerrado)
+  [44, 54, 4, 28],       // Central/Eastern Europe
+  [18, 30, 12, 34],      // North Africa / Nile / Sahara
+  [-22, 8, 16, 36],      // Sub-Saharan Africa
+  [22, 48, 52, 112],     // Central & East Asia
+  [-30, -18, 120, 144],  // Australia interior
+];
+
 export function randomLandSeedAoi(seed: number): AoiSelection {
-  // Deterministic PRNG (mulberry32) for reproducible client-side coordinates
+  // Deterministic PRNG (mulberry32) for reproducible client-side land coordinates
   let t = seed >>> 0;
   const rand = () => {
     t += 0x6d2b79f5;
@@ -25,13 +36,15 @@ export function randomLandSeedAoi(seed: number): AoiSelection {
     r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
     return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
   };
-  const lat = Number((-45 + rand() * 110).toFixed(4));
-  const lon = Number((-130 + rand() * 260).toFixed(4));
+  const box = LAND_BOXES[Math.floor(rand() * LAND_BOXES.length)];
+  const [minLat, maxLat, minLon, maxLon] = box;
+  const lat = Number((minLat + rand() * (maxLat - minLat)).toFixed(4));
+  const lon = Number((minLon + rand() * (maxLon - minLon)).toFixed(4));
   return {
     lat,
     lon,
     bbox: makeBboxAround(lat, lon, 0.5),
-    label: `Custom AOI (seed ${seed})`,
+    label: `Land AOI (seed ${seed})`,
     isRandom: true,
   };
 }

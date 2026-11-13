@@ -54,7 +54,9 @@ jobs:
           read -r MIN_LON MIN_LAT MAX_LON MAX_LAT <<< "$BBOX_CLEAN"
 
           JOB_JSON=$(uv run python -m src.pipeline.aoi_job --store-dir data/jobs create \
-            --bbox "$MIN_LON" "$MIN_LAT" "$MAX_LON" "$MAX_LAT")
+            --bbox "$MIN_LON" "$MIN_LAT" "$MAX_LON" "$MAX_LAT" \
+            --start-date "${{ inputs.start_date }}" \
+            --end-date "${{ inputs.end_date }}")
 
           JOB_ID=$(python3 -c 'import sys,json; print(json.loads(sys.stdin.read())["job_id"])' <<< "$JOB_JSON")
           STATUS=$(python3 -c 'import sys,json; print(json.loads(sys.stdin.read())["status"])' <<< "$JOB_JSON")

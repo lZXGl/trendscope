@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "region": "aoi_s101",
+    "lat": 64.7007,
+    "lon": -98.4826,
+    "variable": "NDVI",
+    "unit": "NDVI",
+    "source": "NASA MODIS MOD13A3.061",
+    "date_range": {
+      "start": "2023-06",
+      "end": "2023-08"
+    },
+    "is_mock": true
+  },
+  "series": [
+    {
+      "date": "2023-06",
+      "raw": 0.42224487606363303,
+      "anomaly": 0.0
+    },
+    {
+      "date": "2023-07",
+      "raw": 0.4728413614502405,
+      "anomaly": 0.0
+    },
+    {
+      "date": "2023-08",
+      "raw": 0.4726115057343693,
+      "anomaly": 0.0
+    }
+  ],
+  "trend": {
+    "method": "MOCK placeholder (no statistics computed)",
+    "sens_slope": 0.0,
+    "slope_unit": "NDVI/decade",
+    "p_value": 1.0,
+    "tau": 0.0,
+    "significant": false,
+    "autocorrected": false
+  },
+  "verdict": {
+    "headline": "No trend computed yet (MOCK)",
+    "summary": "Placeholder verdict until src/stats/stats.py provides real results.",
+    "caveats": [
+      "Mock placeholder: the trend numbers are not computed from the data."
+    ]
+  }
+}

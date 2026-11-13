@@ -306,6 +306,7 @@ def run_modis_aoi(
     min_pixel_presence: float = 0.8,
     allow_marginal: bool = False,
     task_id: str | None = None,
+    task_name: str | None = None,
     raster_root: Path = RASTER_DIR,
     processed_dir: Path = PROCESSED_DIR,
 ) -> Path:
@@ -315,17 +316,27 @@ def run_modis_aoi(
     out_csv = processed_dir / f"{region_id}_ndvi.csv"
     meta_path = processed_dir / f"{region_id}_meta.json"
     processed_dir.mkdir(parents=True, exist_ok=True)
+    resolved_task_name = task_name or f"trendscope_{region_id}_mod13a3"
 
     meta: dict = {
         "dataset_id": "MOD13A3.061",
+        "layers": ["_1_km_monthly_NDVI", "_1_km_monthly_pixel_reliability"],
         "qa_criteria": (
             "pixel_reliability in {0, 1}"
             if allow_marginal
             else "pixel_reliability == 0 (Good); raw NDVI in [-2000, 10000], scale 0.0001"
         ),
+        "processing_rules": {
+            "scale": NDVI_SCALE,
+            "fill_value": NDVI_FILL,
+            "valid_raw_range": [-2000, 10000],
+            "allow_marginal": allow_marginal,
+            "min_pixel_presence": min_pixel_presence,
+        },
         "mask": {"min_pixel_presence": min_pixel_presence},
         "aoi": aoi,
         "date_range": {"start": start_date, "end": end_date},
+        "nasa_task_name": resolved_task_name,
         "nasa_task_id": task_id,
         "status": "pending",
     }
@@ -336,7 +347,7 @@ def run_modis_aoi(
             start_date=start_date,
             end_date=end_date,
             bbox=tuple(aoi["bbox"]),
-            task_name=f"trendscope_{region_id}_mod13a3",
+            task_name=resolved_task_name,
         )
         meta["nasa_task_id"] = resolved_task_id
         download_appeears_rasters(token, resolved_task_id, raster_dir)
@@ -521,6 +532,7 @@ def main(argv: list[str] | None = None) -> int:
     app.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
     app.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
     app.add_argument("--task-id", help="Resume downloading an existing AppEEARS task_id")
+    app.add_argument("--task-name", help="Custom AppEEARS task name")
 
     # 3) Fetch NASA POWER monthly point series
     pwr = sub.add_parser("power", help="Fetch NASA POWER monthly time series to CSV")
@@ -584,6 +596,7 @@ def main(argv: list[str] | None = None) -> int:
                     start_date=args.start_date,
                     end_date=args.end_date,
                     task_id=args.task_id if len(args.random_seed) == 1 else None,
+                    task_name=args.task_name if len(args.random_seed) == 1 else None,
                 )
                 print(f"AOI {aoi['region_id']} -> {meta_path}")
             return 0
@@ -601,6 +614,7 @@ def main(argv: list[str] | None = None) -> int:
                 start_date=args.start_date,
                 end_date=args.end_date,
                 task_id=args.task_id,
+                task_name=args.task_name,
             )
             print(f"AOI {aoi['region_id']} -> {meta_path}")
             return 0

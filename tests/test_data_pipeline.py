@@ -158,3 +158,57 @@ def test_run_modis_aoi_preserves_failure_metadata(tmp_path: Path, monkeypatch):
     assert meta["status"] == "failed"
     assert "AppEEARS unavailable" in meta["error"]
     assert meta["aoi"]["seed"] == 7
+
+
+def test_two_aois_with_identical_filenames_stay_isolated(tmp_path: Path, monkeypatch):
+    aoi_a = {"region_id": "aoi_alpha", "bbox": [30.0, 30.0, 30.5, 30.5], "polygon": []}
+    aoi_b = {"region_id": "aoi_beta", "bbox": [31.0, 31.0, 31.5, 31.5], "polygon": []}
+    raster_root = tmp_path / "rasters"
+    processed_dir = tmp_path / "processed"
+
+    def fake_submit(token, start_date, end_date, bbox, task_name):
+        return f"task_{task_name}"
+
+    def fake_download(token, task_id, raster_dir):
+        raster_dir.mkdir(parents=True, exist_ok=True)
+        val = 3000 if "alpha" in task_id else 7000
+        _write_test_tif(
+            raster_dir / "MOD13A3.061__1_km_monthly_NDVI_doy2023001_aid0001.tif",
+            np.full((2, 2), val, dtype=np.int16),
+        )
+        _write_test_tif(
+            raster_dir / "MOD13A3.061__1_km_monthly_pixel_reliability_doy2023001_aid0001.tif",
+            np.zeros((2, 2), dtype=np.int16),
+        )
+        return []
+
+    monkeypatch.setattr("src.data.fetch.submit_modis_ndvi_task", fake_submit)
+    monkeypatch.setattr("src.data.fetch.download_appeears_rasters", fake_download)
+
+    meta_a = json.loads(
+        run_modis_aoi(
+            "tok",
+            aoi_a,
+            "01-01-2023",
+            "01-31-2023",
+            raster_root=raster_root,
+            processed_dir=processed_dir,
+        ).read_text(encoding="utf-8")
+    )
+    meta_b = json.loads(
+        run_modis_aoi(
+            "tok",
+            aoi_b,
+            "01-01-2023",
+            "01-31-2023",
+            raster_root=raster_root,
+            processed_dir=processed_dir,
+        ).read_text(encoding="utf-8")
+    )
+
+    df_a = pd.read_csv(processed_dir / "aoi_alpha_ndvi.csv")
+    df_b = pd.read_csv(processed_dir / "aoi_beta_ndvi.csv")
+    assert df_a["raw_value"].iloc[0] == pytest.approx(0.3)
+    assert df_b["raw_value"].iloc[0] == pytest.approx(0.7)
+    assert meta_a["nasa_task_id"] != meta_b["nasa_task_id"]
+    assert meta_a["processing_rules"]["scale"] == 0.0001

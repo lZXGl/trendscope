@@ -1,8 +1,10 @@
 export interface TrendIndexItem {
   region: string;
   region_name: string;
+  is_random?: boolean;
   lat: number;
   lon: number;
+  bbox?: [number, number, number, number];
   variable: string;
   variable_name: string;
   variable_description: string;
@@ -48,4 +50,33 @@ export interface TrendResult {
     summary: string;
     caveats: string[];
   };
+}
+
+export interface AoiSelection {
+  lat: number;
+  lon: number;
+  bbox: [number, number, number, number];
+  label: string;
+  isRandom: boolean;
+}
+
+export interface AoiJobStatus {
+  job_id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  stage: null | "checking_area" | "waiting_for_nasa" | "analysing";
+  request: {
+    bbox: [number, number, number, number];
+    product: string;
+    start_date: string;
+    end_date: string;
+    allow_marginal: boolean;
+    min_pixel_presence: number;
+    processing_version: string;
+  };
+  nasa_task_id: string | null;
+  error: string | null;
+  retryable: boolean;
+  result_file: string | null;
+  created_at: string;
+  updated_at: string;
 }

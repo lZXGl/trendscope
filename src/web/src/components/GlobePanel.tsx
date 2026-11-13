@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Globe, { type GlobeMethods } from "react-globe.gl";
-import type { TrendIndexItem } from "../types/trend";
+import type { AoiSelection, TrendIndexItem } from "../types/trend";
 
 interface GlobePanelProps {
   items: TrendIndexItem[];
   selectedRegion: string;
+  customAoi: AoiSelection | null;
   onSelectRegion: (region: string) => void;
+  onSelectCustomAoi: (lat: number, lon: number) => void;
 }
 
 interface RegionPin {
@@ -69,7 +71,13 @@ const NILE_DELTA_FAN: [number, number][] = [
   [31.25, 32.25],
 ];
 
-export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanelProps) {
+export function GlobePanel({
+  items,
+  selectedRegion,
+  customAoi,
+  onSelectRegion,
+  onSelectCustomAoi,
+}: GlobePanelProps) {
   const [mode, setMode] = useState<"map" | "globe">("globe");
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
@@ -94,7 +102,37 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
     return Array.from(byRegion.values());
   }, [items]);
 
-  const activePin = pins.find((p) => p.region === selectedRegion) ?? pins[0];
+  const activePin = customAoi
+    ? {
+        region: "custom_aoi",
+        name: customAoi.label,
+        lat: customAoi.lat,
+        lon: customAoi.lon,
+        significant: false,
+      }
+    : (pins.find((p) => p.region === selectedRegion) ?? pins[0]);
+
+  const aoiPolygons = useMemo(() => {
+    if (!customAoi) return [];
+    const [minLon, minLat, maxLon, maxLat] = customAoi.bbox;
+    return [
+      {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [minLon, minLat],
+              [maxLon, minLat],
+              [maxLon, maxLat],
+              [minLon, maxLat],
+              [minLon, minLat],
+            ],
+          ],
+        },
+      },
+    ];
+  }, [customAoi]);
 
   useEffect(() => {
     if (mode !== "globe") return;
@@ -255,16 +293,31 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
             globeImageUrl={EARTH_DAY_TEXTURE}
             atmosphereColor="#0284c7"
             atmosphereAltitude={0.14}
-            pointsData={pins}
+            pointsData={customAoi ? [...pins, activePin] : pins}
             pointLat="lat"
             pointLng="lon"
-            pointColor={(d) => ((d as RegionPin).region === selectedRegion ? "#0284c7" : "#059669")}
-            pointRadius={(d) => ((d as RegionPin).region === selectedRegion ? 0.85 : 0.55)}
+            pointColor={(d) => {
+              const p = d as RegionPin;
+              if (p.region === "custom_aoi") return "#f59e0b";
+              return !customAoi && p.region === selectedRegion ? "#0284c7" : "#059669";
+            }}
+            pointRadius={(d) => {
+              const p = d as RegionPin;
+              if (p.region === "custom_aoi") return 0.9;
+              return !customAoi && p.region === selectedRegion ? 0.85 : 0.55;
+            }}
             pointAltitude={0.04}
+            polygonsData={aoiPolygons}
+            polygonGeoJsonGeometry="geometry"
+            polygonCapColor={() => "rgba(245, 158, 11, 0.25)"}
+            polygonSideColor={() => "rgba(245, 158, 11, 0.5)"}
+            polygonStrokeColor={() => "#d97706"}
+            polygonAltitude={0.015}
             ringsData={activePin ? [activePin] : []}
             ringLat="lat"
             ringLng="lon"
-            ringColor={() => "#0284c7"}
+            ringColor={() => (customAoi ? "#d97706" : "#0284c7")}
+            onGlobeClick={({ lat, lng }) => onSelectCustomAoi(lat, lng)}
             ringMaxRadius={3.5}
             ringPropagationSpeed={2}
             ringRepeatPeriod={1200}

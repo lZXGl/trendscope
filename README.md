@@ -50,6 +50,12 @@ Reads every `data/processed/<region>_<variable>.csv` plus [`config/regions.json`
 The build fails without writing anything if a CSV is malformed, a region or variable is missing
 from its config file, or any output breaks its schema. The output folder is generated (git-ignored).
 
+**Pre-made random regions.** There is no server, so the "Random Region" button picks from regions
+analysed ahead of time. Each `data/processed/<region_id>_meta.json` written by `fetch.run_modis_aoi`
+with `"status": "ok"` is added automatically (no `config/regions.json` entry needed) and appears in
+`index.json` with `"is_random": true` and its `bbox`. Any other status is skipped with a
+`SKIPPED:` line, so one failed NASA download does not break the build.
+
 Until `src/stats/stats.py` lands, the trend and verdict come from `src/pipeline/stats_stub.py`:
 results carry `metadata.is_mock = true` and "(MOCK)" in the headline. Switch to the real module
 in `src/pipeline/analysis.py` (one import, one flag).

@@ -57,16 +57,26 @@ def test_process_modis_rasters_filters_qa_and_scales(tmp_path: Path):
     )
 
     df = process_modis_rasters(raster_dir=raster_dir, out_csv=out_csv, allow_marginal=False)
-    assert list(df.columns) == ["date", "ndvi", "valid_pixel_count", "valid_fraction"]
+    assert list(df.columns) == [
+        "date",
+        "region",
+        "variable",
+        "raw_value",
+        "anomaly",
+        "unit",
+        "source",
+        "valid_pixel_count",
+        "valid_fraction",
+    ]
     assert list(df["date"]) == ["2023-01", "2023-02"]
 
     # Jan: mean of (5000, 7000) * 0.0001 = 0.6, 2/4 valid
-    assert df.loc[0, "ndvi"] == pytest.approx(0.6)
+    assert df.loc[0, "raw_value"] == pytest.approx(0.6)
     assert df.loc[0, "valid_pixel_count"] == 2
     assert df.loc[0, "valid_fraction"] == pytest.approx(0.5)
 
     # Feb: mean of (4000) * 0.0001 = 0.4, 1/4 valid
-    assert df.loc[1, "ndvi"] == pytest.approx(0.4)
+    assert df.loc[1, "raw_value"] == pytest.approx(0.4)
     assert df.loc[1, "valid_pixel_count"] == 1
     assert df.loc[1, "valid_fraction"] == pytest.approx(0.25)
 

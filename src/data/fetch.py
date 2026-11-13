@@ -35,6 +35,7 @@ DEFAULT_UNITS = {
     "PRECTOTCORR": "mm/day",
     "ALLSKY_SFC_SW_DWN": "kW-hr/m^2/day",
 }
+UNIT_ALIASES = {"C": "degC"}
 
 
 # ---------------------------------------------------------------------------
@@ -159,8 +160,9 @@ def _doy_to_year_month(filename: str) -> str:
 
 def process_modis_rasters(
     raster_dir: Path = RASTER_DIR,
-    out_csv: Path = PROCESSED_DIR / "ndvi_monthly.csv",
+    out_csv: Path = PROCESSED_DIR / "nile_delta_ndvi.csv",
     allow_marginal: bool = False,
+    region: str = "nile_delta",
 ) -> pd.DataFrame:
     """Filter MODIS NDVI GeoTIFFs by pixel reliability QA, scale by 0.0001, and export CSV."""
     ndvi_files = sorted(raster_dir.glob("*_NDVI_doy*.tif*"))
@@ -205,13 +207,29 @@ def process_modis_rasters(
         rows.append(
             {
                 "date": ym,
-                "ndvi": ndvi_mean,
+                "region": region.lower(),
+                "variable": "NDVI",
+                "raw_value": ndvi_mean,
+                "unit": "NDVI",
+                "source": "NASA MODIS MOD13A3.061",
                 "valid_pixel_count": valid_count,
                 "valid_fraction": valid_fraction,
             }
         )
 
-    df = pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
+    df = _add_monthly_anomaly(pd.DataFrame(rows))
+    cols = [
+        "date",
+        "region",
+        "variable",
+        "raw_value",
+        "anomaly",
+        "unit",
+        "source",
+        "valid_pixel_count",
+        "valid_fraction",
+    ]
+    df = df[cols]
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_csv, index=False)
     return df
@@ -277,6 +295,7 @@ def parse_power_payload(
         or payload.get("parameters", {}).get(variable, {}).get("units")
         or DEFAULT_UNITS.get(variable, "unknown")
     )
+    resolved_unit = UNIT_ALIASES.get(resolved_unit, resolved_unit)
 
     rows = []
     for ym, val in param_map.items():
@@ -346,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
     # 1) Process cached/downloaded MODIS MOD13A3.061 GeoTIFFs
     proc = sub.add_parser("modis-process", help="Process MODIS MOD13A3.061 GeoTIFFs to CSV")
     proc.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
-    proc.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "ndvi_monthly.csv")
+    proc.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
     proc.add_argument("--allow-marginal", action="store_true", help="Include QA=1 marginal pixels")
 
     # 2) Submit + download AppEEARS MOD13A3.061 task
@@ -354,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
     app.add_argument("--start-date", default="01-01-2023", help="MM-DD-YYYY (short test first)")
     app.add_argument("--end-date", default="06-30-2023", help="MM-DD-YYYY")
     app.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
-    app.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "ndvi_monthly.csv")
+    app.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
     app.add_argument("--task-id", help="Resume downloading an existing AppEEARS task_id")
 
     # 3) Fetch NASA POWER monthly point series

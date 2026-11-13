@@ -8,5 +8,5 @@
 - **Study Region:** Central Nile Delta agricultural subset (`lon: 30.7°E–31.3°E`, `lat: 30.7°N–31.2°N`)
 - **Units:** Dimensionless NDVI (`-0.2` to `1.0` after `× 0.0001` scaling)
 - **Quality Filtering:** By default, only pixels with `pixel_reliability == 0` (Good) and non-fill NDVI in `[-2000, 10000]` are retained.
-- **Output (`data/processed/ndvi_monthly.csv`):** `date` (`YYYY-MM`), `ndvi`, `valid_pixel_count`, `valid_fraction`.
+- **Output (`data/processed/nile_delta_ndvi.csv`):** `date` (`YYYY-MM`), `region`, `variable`, `raw_value`, `anomaly`, `unit`, `source`, `valid_pixel_count`, `valid_fraction`.
 - **Raw Rasters:** Stored locally in `data/raw/rasters/` (gitignored) for optional pixel-level analysis.

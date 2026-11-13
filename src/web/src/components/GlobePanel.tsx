@@ -158,6 +158,10 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
             {pins.map((pin) => {
               const { x, y } = projectEgypt(pin.lat, pin.lon);
               const isSelected = pin.region === selectedRegion;
+              const isLeft = pin.region === "nile_delta";
+              const labelWidth = pin.name.length * 6.5 + 12;
+              const rectX = isLeft ? x - labelWidth - 10 : x + 10;
+              const rectY = isLeft ? y - 16 : y - 4;
               return (
                 <g
                   key={pin.region}
@@ -176,9 +180,9 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
                     strokeWidth={2}
                   />
                   <rect
-                    x={x + 9}
-                    y={y - 10}
-                    width={pin.name.length * 6.5 + 12}
+                    x={rectX}
+                    y={rectY}
+                    width={labelWidth}
                     height={18}
                     rx={4}
                     fill="#FFFFFF"
@@ -186,8 +190,8 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
                     strokeWidth={1}
                   />
                   <text
-                    x={x + 15}
-                    y={y + 2}
+                    x={rectX + 6}
+                    y={rectY + 12}
                     fontSize={10}
                     fontWeight={600}
                     fill="#0F172A"
@@ -238,10 +242,14 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
             htmlElement={(d) => {
               const p = d as RegionPin;
               const isSelected = p.region === selectedRegion;
-              const el = document.createElement("button");
-              el.type = "button";
-              el.textContent = p.name;
-              el.style.cssText = [
+              const isLeft = p.region === "nile_delta";
+              const wrap = document.createElement("div");
+              wrap.style.pointerEvents = "none";
+
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.textContent = p.name;
+              btn.style.cssText = [
                 "padding: 3px 8px",
                 "border-radius: 9999px",
                 "font-size: 11px",
@@ -249,14 +257,15 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
                 "white-space: nowrap",
                 "cursor: pointer",
                 "pointer-events: auto",
-                `transform: translate(${p.region === "cairo" ? "10%" : "-110%"}, ${p.region === "cairo" ? "10%" : "-110%"})`,
+                `transform: translate(${isLeft ? "-115%" : "18%"}, ${isLeft ? "-115%" : "18%"})`,
                 `background: ${isSelected ? "#0284c7" : "#ffffff"}`,
                 `color: ${isSelected ? "#ffffff" : "#0f172a"}`,
                 `border: 1px solid ${isSelected ? "#0369a1" : "#cbd5e1"}`,
                 "box-shadow: 0 2px 6px rgba(15,23,42,0.18)",
               ].join(";");
-              el.onclick = () => onSelectRegion(p.region);
-              return el;
+              btn.onclick = () => onSelectRegion(p.region);
+              wrap.appendChild(btn);
+              return wrap;
             }}
             onPointClick={(d) => onSelectRegion((d as RegionPin).region)}
           />

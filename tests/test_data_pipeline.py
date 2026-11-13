@@ -10,11 +10,13 @@ import rasterio
 from rasterio.transform import from_origin
 
 from scripts.validate_schema import main as validate_main
+from src.data.aoi import generate_random_aoi
 from src.data.fetch import (
     fetch_power_raw,
     parse_giovanni_csv,
     parse_power_payload,
     process_modis_rasters,
+    run_modis_aoi,
 )
 
 MOCK_JSON = Path(__file__).resolve().parent.parent / "data" / "mock" / "results.mock.json"
@@ -126,3 +128,33 @@ def test_parse_giovanni_csv(tmp_path: Path):
 
 def test_mock_json_validates_against_schema():
     assert validate_main([str(MOCK_JSON)]) == 0
+
+
+def test_generate_random_aoi_is_reproducible_and_on_land():
+    from global_land_mask import globe
+
+    a1 = generate_random_aoi(seed=42, size_deg=0.5)
+    a2 = generate_random_aoi(seed=42, size_deg=0.5)
+    assert a1 == a2
+    assert a1["region_id"] == "aoi_s42"
+    assert len(a1["polygon"]) == 5
+    assert globe.is_land(a1["lat"], a1["lon"])
+
+
+def test_run_modis_aoi_preserves_failure_metadata(tmp_path: Path, monkeypatch):
+    aoi = generate_random_aoi(seed=7, size_deg=0.5)
+
+    def fail_submit(*args, **kwargs):
+        raise RuntimeError("AppEEARS unavailable")
+
+    monkeypatch.setattr("src.data.fetch.submit_modis_ndvi_task", fail_submit)
+    meta_path = run_modis_aoi(
+        token="dummy",
+        aoi=aoi,
+        raster_root=tmp_path / "rasters",
+        processed_dir=tmp_path / "processed",
+    )
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta["status"] == "failed"
+    assert "AppEEARS unavailable" in meta["error"]
+    assert meta["aoi"]["seed"] == 7

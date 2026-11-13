@@ -1,0 +1,50 @@
+{
+  "dataset_id": "MOD13A3.061",
+  "qa_criteria": "pixel_reliability == 0 (Good); raw NDVI in [-2000, 10000], scale 0.0001",
+  "mask": {
+    "min_pixel_presence": 0.8
+  },
+  "aoi": {
+    "region_id": "aoi_s42",
+    "seed": 42,
+    "lat": 50.6075,
+    "lon": 70.5591,
+    "size_deg": 0.5,
+    "bbox": [
+      70.3091,
+      50.3575,
+      70.8091,
+      50.8575
+    ],
+    "polygon": [
+      [
+        70.3091,
+        50.3575
+      ],
+      [
+        70.8091,
+        50.3575
+      ],
+      [
+        70.8091,
+        50.8575
+      ],
+      [
+        70.3091,
+        50.8575
+      ],
+      [
+        70.3091,
+        50.3575
+      ]
+    ],
+    "attempts": 2
+  },
+  "date_range": {
+    "start": "01-01-2023",
+    "end": "06-30-2023"
+  },
+  "nasa_task_id": "bcf5f5fa-8aca-47e9-b343-5c567de61d28",
+  "status": "failed",
+  "error": "No pixels meet min_pixel_presence threshold"
+}

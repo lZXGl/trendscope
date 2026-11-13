@@ -1,0 +1,208 @@
+{
+  "status": "WARN",
+  "scientific_certification": false,
+  "checks": [
+    {
+      "status": "WARN",
+      "check": "provenance",
+      "message": "NASA task provenance may be internally consistent but is not independently authenticated. Checksums bind local files, not NASA origin. No rasters, returned task layers/dates or pixel QA/scaling are independently verified."
+    },
+    {
+      "status": "WARN",
+      "check": "inference",
+      "message": "Autocorrelation/independence and AOI-specific calibration remain unverified. In-period climatology estimation induces dependence; reference p-value agreement is arithmetic only. No uncertainty interval, spatial representativeness, causation or scientifically conclusive significance is certified."
+    },
+    {
+      "status": "PASS",
+      "check": "manifest_read",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "csv_read",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "result_read",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "result_schema",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "dataset_identity",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "aoi_coordinates",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "raster_metadata",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "csv_checksum",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "monthly_calendar",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "ndvi_bounds",
+      "message": "Checks passed."
+    },
+    {
+      "status": "WARN",
+      "check": "coverage",
+      "message": "Some months have <25% spatial coverage or the fetch flags low coverage. This is descriptive; no observations are dropped and the existing fetch mean-coverage flag is unchanged."
+    },
+    {
+      "status": "WARN",
+      "check": "missing_observations",
+      "message": "Explicit missing NASA observations are retained as rows; they are distinct from absent CSV rows. Missingness may bias trends."
+    },
+    {
+      "status": "PASS",
+      "check": "qa_coverage",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "result_metadata",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "recompute_anomalies",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "result_series",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "statistical_reference",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "significance",
+      "message": "Checks passed."
+    },
+    {
+      "status": "PASS",
+      "check": "scientific_caveats",
+      "message": "Checks passed."
+    }
+  ],
+  "calendar": {
+    "expected_months": 288,
+    "csv_rows": 288,
+    "duplicate_months": [],
+    "absent_rows": [],
+    "outside_request": [],
+    "explicit_missing_observation_months": [
+      "2001-01",
+      "2001-02",
+      "2001-03",
+      "2002-01",
+      "2002-02",
+      "2002-12",
+      "2003-01",
+      "2003-02",
+      "2003-03",
+      "2004-01",
+      "2004-02",
+      "2004-03",
+      "2005-01",
+      "2005-02",
+      "2005-03",
+      "2006-01",
+      "2006-02",
+      "2006-03",
+      "2007-02",
+      "2008-01",
+      "2008-02",
+      "2008-03",
+      "2009-01",
+      "2009-02",
+      "2010-01",
+      "2010-02",
+      "2011-01",
+      "2011-02",
+      "2011-03",
+      "2012-01",
+      "2012-02",
+      "2013-01",
+      "2013-02",
+      "2013-03",
+      "2014-01",
+      "2014-02",
+      "2014-03",
+      "2015-01",
+      "2015-02",
+      "2015-03",
+      "2016-01",
+      "2016-02",
+      "2017-01",
+      "2017-02",
+      "2017-03",
+      "2018-01",
+      "2018-02",
+      "2018-03",
+      "2018-12",
+      "2019-01",
+      "2019-02",
+      "2019-03",
+      "2020-01",
+      "2020-02",
+      "2020-03",
+      "2021-01",
+      "2021-02",
+      "2022-01",
+      "2022-02",
+      "2023-01",
+      "2023-02",
+      "2023-03",
+      "2024-01"
+    ]
+  },
+  "coverage": {
+    "months_total": 288,
+    "months_available": 225,
+    "mean_valid_fraction": 0.6461922059117237,
+    "min_valid_fraction": 0.0,
+    "median_valid_fraction": 0.9009886159376872,
+    "max_valid_fraction": 1.0,
+    "months_below_25_percent": 77,
+    "eligible_pixel_count": 3338
+  },
+  "statistics": {
+    "n_finite": 225,
+    "scipy_tau_a": -0.028690476190476193,
+    "scipy_slope_ndvi_per_decade": -0.0013555037491974154,
+    "p_value_reference": 0.5223903516513149,
+    "ordinary_mk_null": "No monotonic trend under independent observations; exact ties, continuity-corrected normal tail.",
+    "p_value_scope": "Ordinary MK arithmetic only; independence unverified"
+  },
+  "alpha": 0.05,
+  "result_caveats": [
+    "Autocorrelation has not yet been corrected; ordinary Mann\u2013Kendall assumes independent observations, so its p-value and significance are provisional.",
+    "Monthly climatological means are estimated from available observations in this input period, not an independent reference baseline; short or uneven records can distort anomalies and reduce power. The test uses an asymptotic p-value, which may be unreliable for small samples. A nonsignificant test does not prove stability.",
+    "Missing observations are excluded from estimation without interpolation; calendar gaps are preserved for Sen's slope. Missingness and changing spatial coverage can bias trends; upstream pixel QA is assumed and no extra QA cutoff is applied.",
+    "NDVI trends describe vegetation index changes, not their causes. Monthly dates are represented by month starts; slopes use anomalies and actual decimal years."
+  ]
+}

@@ -1,8 +1,8 @@
 """The ONE place where the pipeline calls the statistics code.
 
-To switch to the real module once src/stats/stats.py lands:
-  1. replace the import below with `from src.stats.stats import analyse as _analyse`
-  2. set IS_MOCK = False
+Uses the validated NDVI statistics engine (`src/stats/stats.py`) when the series is a
+valid multi-year NDVI record, and falls back to `stats_stub` (explicitly flagged
+`is_mock=True`) for non-NDVI variables (T2M, PRECTOTCORR) or short retrieval demos.
 """
 
 import math
@@ -10,9 +10,10 @@ import math
 import numpy as np
 import pandas as pd
 
-from src.pipeline.stats_stub import analyse as _analyse
+from src.pipeline.stats_stub import analyse as _stub_analyse
+from src.stats.stats import analyze_trend
 
-IS_MOCK = True
+IS_MOCK = False
 
 
 def _to_plain(value: object, path: str) -> object:
@@ -34,18 +35,42 @@ def _to_plain(value: object, path: str) -> object:
     return value
 
 
-def analyse(df: pd.DataFrame) -> dict:
-    """Analyse one processed series and return {"trend": {...}, "verdict": {...}}.
+def _analyse(df: pd.DataFrame, *, lat: float = 0.0, lon: float = 0.0) -> dict:
+    variable = str(df["variable"].iloc[0]) if not df.empty else ""
+    if variable == "NDVI":
+        try:
+            real = analyze_trend(df, lat=lat, lon=lon)
+            return {
+                "trend": real["trend"],
+                "verdict": real["verdict"],
+                "series": real["series"],
+                "is_mock": bool(real["metadata"].get("is_mock", False)),
+            }
+        except ValueError:
+            pass
+    stub = _stub_analyse(df)
+    stub["is_mock"] = True
+    return stub
+
+
+def analyse(df: pd.DataFrame, *, lat: float = 0.0, lon: float = 0.0) -> dict:
+    """Analyse one processed series and return {"trend", "verdict", "is_mock", optional "series"}.
 
     `df` has the fetch.save_processed columns (date, region, variable, raw_value, anomaly,
-    unit, source), one row per month, sorted by date. Both blocks must match
-    schemas/trend_result.schema.json exactly.
+    unit, source), one row per month, sorted by date.
     """
-    result = _analyse(df)
+    try:
+        result = _analyse(df, lat=lat, lon=lon)
+    except TypeError:
+        result = _analyse(df)
     missing = {"trend", "verdict"} - set(result)
     if missing:
         raise ValueError(f"analyse() result is missing keys: {sorted(missing)}")
-    return {
+    out: dict = {
         "trend": _to_plain(result["trend"], "trend"),
         "verdict": _to_plain(result["verdict"], "verdict"),
+        "is_mock": bool(result.get("is_mock", IS_MOCK)),
     }
+    if "series" in result:
+        out["series"] = _to_plain(result["series"], "series")
+    return out

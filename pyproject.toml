@@ -9,8 +9,11 @@ dependencies = [
     "jsonschema>=4.23.0",
     "numpy>=2.0.0",
     "pandas>=2.2.0",
+    "pymannkendall>=1.4.3",
     "rasterio>=1.4.0",
     "requests>=2.32.0",
+    "scipy>=1.17.1",
+    "statsmodels>=0.15.0",
 ]
 
 [dependency-groups]

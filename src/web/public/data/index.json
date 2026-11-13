@@ -62,7 +62,7 @@
     "unit": "NDVI",
     "source": "NASA MODIS MOD13A3.061",
     "file": "results/nile_delta_ndvi.json",
-    "significant": false,
-    "headline": "No trend computed yet (MOCK)"
+    "significant": true,
+    "headline": "Statistically significant decreasing NDVI anomalies"
   }
 ]

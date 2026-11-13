@@ -10,7 +10,7 @@
       "start": "2001-01",
       "end": "2024-12"
     },
-    "is_mock": true
+    "is_mock": false
   },
   "series": [
     {
@@ -1455,19 +1455,22 @@
     }
   ],
   "trend": {
-    "method": "MOCK placeholder (no statistics computed)",
-    "sens_slope": 0.0,
+    "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
+    "sens_slope": -0.021309415633866107,
     "slope_unit": "NDVI/decade",
-    "p_value": 1.0,
-    "tau": 0.0,
-    "significant": false,
+    "p_value": 5.726511116056801e-18,
+    "tau": -0.34141502129307005,
+    "significant": true,
     "autocorrected": false
   },
   "verdict": {
-    "headline": "No trend computed yet (MOCK)",
-    "summary": "Placeholder verdict until src/stats/stats.py provides real results.",
+    "headline": "Statistically significant decreasing NDVI anomalies",
+    "summary": "Monthly anomalies are decreasing by Kendall's tau (-0.341). Sen's slope is -0.02131 NDVI per decade; ordinary Mann–Kendall p=5.727e-18 (alpha=0.05, n=288). Autocorrelation has not yet been corrected.",
     "caveats": [
-      "Mock placeholder: the trend numbers are not computed from the data."
+      "Autocorrelation has not yet been corrected; ordinary Mann–Kendall assumes independent observations, so its p-value and significance are provisional.",
+      "Monthly climatological means are estimated from available observations in this input period, not an independent reference baseline; short or uneven records can distort anomalies and reduce power. The test uses an asymptotic p-value, which may be unreliable for small samples. A nonsignificant test does not prove stability.",
+      "Missing observations are excluded from estimation without interpolation; calendar gaps are preserved for Sen's slope. Missingness and changing spatial coverage can bias trends; upstream pixel QA is assumed and no extra QA cutoff is applied.",
+      "NDVI trends describe vegetation index changes, not their causes. Monthly dates are represented by month starts; slopes use anomalies and actual decimal years."
     ]
   }
 }

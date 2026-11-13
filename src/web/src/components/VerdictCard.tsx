@@ -49,10 +49,15 @@ export function VerdictCard({ result }: VerdictCardProps) {
               {direction}
             </span>
 
-            {trend.autocorrected && (
+            {trend.autocorrected ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 Autocorrelation-Corrected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50/70 text-amber-900 border border-amber-200">
+                <Info className="w-3.5 h-3.5" />
+                Ordinary MK (Uncorrected)
               </span>
             )}
 

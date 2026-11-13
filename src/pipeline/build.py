@@ -134,8 +134,8 @@ def build_result(df: pd.DataFrame, regions: dict[str, dict]) -> dict:
     if region not in regions:
         raise BuildError(f"region '{region}' is not in the regions config")
 
-    stats = analysis.analyse(df)
-    metadata = {
+    stats = analysis.analyse(df, lat=regions[region]["lat"], lon=regions[region]["lon"])
+    metadata: dict = {
         "region": region,
         "lat": regions[region]["lat"],
         "lon": regions[region]["lon"],
@@ -144,10 +144,9 @@ def build_result(df: pd.DataFrame, regions: dict[str, dict]) -> dict:
         "source": str(df["source"].iloc[0]),
         "date_range": {"start": df["date"].iloc[0], "end": df["date"].iloc[-1]},
     }
-    if analysis.IS_MOCK:
-        metadata["is_mock"] = True
+    metadata["is_mock"] = bool(stats.get("is_mock", analysis.IS_MOCK))
 
-    series = [
+    series = stats.get("series") or [
         {
             "date": row.date,
             "raw": _number_or_none(row.raw_value),

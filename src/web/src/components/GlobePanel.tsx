@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Globe, { type GlobeMethods } from "react-globe.gl";
-import * as THREE from "three";
 import type { TrendIndexItem } from "../types/trend";
 
 interface GlobePanelProps {
@@ -17,7 +16,7 @@ interface RegionPin {
   significant: boolean;
 }
 
-const EARTH_DAY_TEXTURE = "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
+const EARTH_DAY_TEXTURE = "https://unpkg.com/three-globe/example/img/earth-day.jpg";
 
 // Map lon [24..36], lat [22..33] (Egypt & Nile Delta) into SVG 360x260
 function projectEgypt(lat: number, lon: number) {
@@ -69,7 +68,7 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
 
   useEffect(() => {
     if (mode !== "globe" || !globeRef.current || !activePin) return;
-    globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.5 }, 900);
+    globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.85 }, 900);
   }, [mode, activePin]);
 
   return (
@@ -207,7 +206,6 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
             width={size.width}
             height={size.height}
             backgroundColor="#E0F2FE"
-            globeMaterial={new THREE.MeshPhongMaterial({ color: "#93c5fd" })}
             globeImageUrl={EARTH_DAY_TEXTURE}
             atmosphereColor="#0284c7"
             atmosphereAltitude={0.14}
@@ -215,11 +213,18 @@ export function GlobePanel({ items, selectedRegion, onSelectRegion }: GlobePanel
             pointLat="lat"
             pointLng="lon"
             pointColor={(d) => ((d as RegionPin).region === selectedRegion ? "#0284c7" : "#059669")}
-            pointRadius={(d) => ((d as RegionPin).region === selectedRegion ? 0.9 : 0.6)}
+            pointRadius={(d) => ((d as RegionPin).region === selectedRegion ? 0.85 : 0.55)}
             pointAltitude={0.04}
+            ringsData={activePin ? [activePin] : []}
+            ringLat="lat"
+            ringLng="lon"
+            ringColor={() => "#0284c7"}
+            ringMaxRadius={3.5}
+            ringPropagationSpeed={2}
+            ringRepeatPeriod={1200}
             onGlobeReady={() => {
               if (globeRef.current && activePin) {
-                globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.5 }, 0);
+                globeRef.current.pointOfView({ lat: activePin.lat, lng: activePin.lon, altitude: 1.85 }, 0);
               }
             }}
             onPointClick={(d) => onSelectRegion((d as RegionPin).region)}

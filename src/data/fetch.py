@@ -8,12 +8,15 @@ import json
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import rasterio
 import requests
+
+from src.data.aoi import bbox_to_polygon, generate_random_aoi
 
 APPEEARS_API = "https://appeears.earthdatacloud.nasa.gov/api"
 POWER_URL = "https://power.larc.nasa.gov/api/temporal/monthly/point"
@@ -125,26 +128,36 @@ def download_appeears_rasters(
     bundle = requests.get(f"{APPEEARS_API}/bundle/{task_id}", headers=headers, timeout=30)
     bundle.raise_for_status()
 
-    saved: list[Path] = []
-    for item in bundle.json().get("files", []):
+    tifs = [
+        item
+        for item in bundle.json().get("files", [])
+        if Path(item["file_name"]).name.lower().endswith((".tif", ".tiff"))
+    ]
+    saved = [raster_dir / Path(item["file_name"]).name for item in tifs]
+    todo = [item for item in tifs if not (raster_dir / Path(item["file_name"]).name).exists()]
+
+    def _download_one(item: dict) -> None:
         fname = Path(item["file_name"]).name
-        if not fname.lower().endswith((".tif", ".tiff")):
-            continue
         dest = raster_dir / fname
-        if dest.exists():
-            saved.append(dest)
-            continue
-        dl = requests.get(
-            f"{APPEEARS_API}/bundle/{task_id}/{item['file_id']}",
-            headers=headers,
-            stream=True,
-            timeout=60,
-        )
+        tmp = raster_dir / f"{fname}.tmp"
+        for attempt in range(5):
+            dl = requests.get(
+                f"{APPEEARS_API}/bundle/{task_id}/{item['file_id']}",
+                headers=headers,
+                timeout=60,
+            )
+            if dl.status_code == 429:
+                time.sleep(2 * (attempt + 1))
+                continue
+            dl.raise_for_status()
+            tmp.write_bytes(dl.content)
+            tmp.replace(dest)
+            return
         dl.raise_for_status()
-        with dest.open("wb") as fh:
-            for chunk in dl.iter_content(chunk_size=65536):
-                fh.write(chunk)
-        saved.append(dest)
+
+    if todo:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            list(pool.map(_download_one, todo))
     return saved
 
 
@@ -269,6 +282,92 @@ def process_modis_rasters(
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_csv, index=False)
     return df
+
+
+def inspect_raster_metadata(raster_dir: Path) -> dict:
+    """Extract CRS, resolution, bounds, and grid shape from the first NDVI GeoTIFF."""
+    first = next(iter(sorted(raster_dir.glob("*_NDVI_doy*.tif*"))), None)
+    if first is None:
+        return {}
+    with rasterio.open(first) as src:
+        return {
+            "crs": str(src.crs),
+            "resolution": list(src.res),
+            "bounds": [src.bounds.left, src.bounds.bottom, src.bounds.right, src.bounds.top],
+            "grid_shape": list(src.shape),
+        }
+
+
+def run_modis_aoi(
+    token: str,
+    aoi: dict,
+    start_date: str = "01-01-2001",
+    end_date: str = "12-31-2024",
+    min_pixel_presence: float = 0.8,
+    allow_marginal: bool = False,
+    task_id: str | None = None,
+    raster_root: Path = RASTER_DIR,
+    processed_dir: Path = PROCESSED_DIR,
+) -> Path:
+    """Run isolated AppEEARS fetch + raster processing for one AOI, preserving failures/metadata."""
+    region_id = aoi["region_id"]
+    raster_dir = raster_root if region_id == "nile_delta" else raster_root / region_id
+    out_csv = processed_dir / f"{region_id}_ndvi.csv"
+    meta_path = processed_dir / f"{region_id}_meta.json"
+    processed_dir.mkdir(parents=True, exist_ok=True)
+
+    meta: dict = {
+        "dataset_id": "MOD13A3.061",
+        "qa_criteria": (
+            "pixel_reliability in {0, 1}"
+            if allow_marginal
+            else "pixel_reliability == 0 (Good); raw NDVI in [-2000, 10000], scale 0.0001"
+        ),
+        "mask": {"min_pixel_presence": min_pixel_presence},
+        "aoi": aoi,
+        "date_range": {"start": start_date, "end": end_date},
+        "nasa_task_id": task_id,
+        "status": "pending",
+    }
+
+    try:
+        resolved_task_id = task_id or submit_modis_ndvi_task(
+            token,
+            start_date=start_date,
+            end_date=end_date,
+            bbox=tuple(aoi["bbox"]),
+            task_name=f"trendscope_{region_id}_mod13a3",
+        )
+        meta["nasa_task_id"] = resolved_task_id
+        download_appeears_rasters(token, resolved_task_id, raster_dir)
+
+        start_ym = f"{start_date[6:10]}-{start_date[0:2]}"
+        end_ym = f"{end_date[6:10]}-{end_date[0:2]}"
+        df = process_modis_rasters(
+            raster_dir=raster_dir,
+            out_csv=out_csv,
+            allow_marginal=allow_marginal,
+            region=region_id,
+            min_pixel_presence=min_pixel_presence,
+            start_ym=start_ym,
+            end_ym=end_ym,
+        )
+        grid_info = inspect_raster_metadata(raster_dir)
+        mean_cov = float(df["valid_fraction"].mean()) if not df.empty else 0.0
+        avail = int(df["raw_value"].notna().sum())
+        meta.update(grid_info)
+        meta["coverage"] = {
+            "months_total": len(df),
+            "months_available": avail,
+            "mean_valid_fraction": round(mean_cov, 4),
+        }
+        meta["status"] = "low_coverage" if avail == 0 or mean_cov < 0.25 else "ok"
+    except Exception as exc:
+        meta["status"] = "failed"
+        meta["error"] = str(exc)
+
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return meta_path
 
 
 # ---------------------------------------------------------------------------
@@ -413,6 +512,12 @@ def main(argv: list[str] | None = None) -> int:
     app = sub.add_parser("appeears", help="Submit & download MOD13A3.061 from NASA AppEEARS")
     app.add_argument("--start-date", default="01-01-2023", help="MM-DD-YYYY (short test first)")
     app.add_argument("--end-date", default="06-30-2023", help="MM-DD-YYYY")
+    app.add_argument("--region", default="nile_delta", help="Region slug (for non-random AOI)")
+    app.add_argument(
+        "--bbox", nargs=4, type=float, metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT")
+    )
+    app.add_argument("--random-seed", type=int, nargs="+", help="Seed(s) for random land AOI(s)")
+    app.add_argument("--size-deg", type=float, default=0.5, help="Random AOI width/height (deg)")
     app.add_argument("--raster-dir", type=Path, default=RASTER_DIR)
     app.add_argument("--out-csv", type=Path, default=PROCESSED_DIR / "nile_delta_ndvi.csv")
     app.add_argument("--task-id", help="Resume downloading an existing AppEEARS task_id")
@@ -470,8 +575,38 @@ def main(argv: list[str] | None = None) -> int:
                 raise SystemExit("Set APPEEARS_TOKEN or EARTHDATA_USER + EARTHDATA_PASS")
             token = appeears_login(user, pwd)
 
+        if args.random_seed:
+            for seed in args.random_seed:
+                aoi = generate_random_aoi(seed=seed, size_deg=args.size_deg)
+                meta_path = run_modis_aoi(
+                    token=token,
+                    aoi=aoi,
+                    start_date=args.start_date,
+                    end_date=args.end_date,
+                    task_id=args.task_id if len(args.random_seed) == 1 else None,
+                )
+                print(f"AOI {aoi['region_id']} -> {meta_path}")
+            return 0
+
+        bbox = tuple(args.bbox) if args.bbox else NILE_DELTA_BBOX
+        if args.region != "nile_delta" or args.bbox:
+            aoi = {
+                "region_id": args.region.lower(),
+                "bbox": list(bbox),
+                "polygon": bbox_to_polygon(bbox),
+            }
+            meta_path = run_modis_aoi(
+                token=token,
+                aoi=aoi,
+                start_date=args.start_date,
+                end_date=args.end_date,
+                task_id=args.task_id,
+            )
+            print(f"AOI {aoi['region_id']} -> {meta_path}")
+            return 0
+
         task_id = args.task_id or submit_modis_ndvi_task(
-            token, start_date=args.start_date, end_date=args.end_date
+            token, start_date=args.start_date, end_date=args.end_date, bbox=bbox
         )
         print(f"AppEEARS task_id: {task_id}")
         files = download_appeears_rasters(token, task_id, args.raster_dir)

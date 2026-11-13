@@ -42,12 +42,13 @@ uv run python -m src.data.fetch modis-process
 uv run python -m src.pipeline.build
 ```
 Reads every `data/processed/<region>_<variable>.csv` plus [`config/regions.json`](config/regions.json)
-(display name, lat, lon per region slug) and writes into `src/web/public/data/`:
+(display name, lat, lon per region slug) and [`config/variables.json`](config/variables.json)
+(display name and description per variable) and writes into `src/web/public/data/`:
 - `results/<region>_<variable>.json` — one result per pair, validated against `schemas/trend_result.schema.json`
 - `index.json` — the list of available results, validated against [`schemas/index.schema.json`](schemas/index.schema.json)
 
-The build fails without writing anything if a CSV is malformed, a region is missing from
-`config/regions.json`, or any output breaks its schema. The output folder is generated (git-ignored).
+The build fails without writing anything if a CSV is malformed, a region or variable is missing
+from its config file, or any output breaks its schema. The output folder is generated (git-ignored).
 
 Until `src/stats/stats.py` lands, the trend and verdict come from `src/pipeline/stats_stub.py`:
 results carry `metadata.is_mock = true` and "(MOCK)" in the headline. Switch to the real module

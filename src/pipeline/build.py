@@ -1,6 +1,6 @@
 """Build the static JSON the frontend reads from the processed CSVs.
 
-data/processed/<region>_<variable>.csv + config/regions.json
+data/processed/<region>_<variable>.csv + config/regions.json + config/variables.json
   -> src/web/public/data/results/<region>_<variable>.json  (trend_result.schema.json)
   -> src/web/public/data/index.json                        (index.schema.json)
 
@@ -21,6 +21,7 @@ from src.pipeline.validation import INDEX_SCHEMA_PATH, RESULT_SCHEMA_PATH, valid
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 PROCESSED_DIR = ROOT_DIR / "data" / "processed"
 REGIONS_PATH = ROOT_DIR / "config" / "regions.json"
+VARIABLES_PATH = ROOT_DIR / "config" / "variables.json"
 OUT_DIR = ROOT_DIR / "src" / "web" / "public" / "data"
 
 CSV_COLUMNS = ["date", "region", "variable", "raw_value", "anomaly", "unit", "source"]
@@ -31,16 +32,20 @@ class BuildError(ValueError):
     """An input file is malformed or inconsistent."""
 
 
-def load_regions(path: Path) -> dict[str, dict]:
-    """Read config/regions.json: {"<region slug>": {"name": str, "lat": num, "lon": num}}."""
+def load_catalogue(path: Path, required: set[str]) -> dict[str, dict]:
+    """Read a config catalogue: {"<id>": {<required keys>...}}.
+
+    config/regions.json   -> {"<region slug>": {"name", "lat", "lon"}}
+    config/variables.json -> {"<variable id>": {"name", "description"}}
+    """
     if not path.exists():
-        raise BuildError(f"Regions config not found: {path}")
-    regions = json.loads(path.read_text(encoding="utf-8"))
-    for slug, info in regions.items():
-        missing = {"name", "lat", "lon"} - set(info)
+        raise BuildError(f"Config not found: {path}")
+    catalogue = json.loads(path.read_text(encoding="utf-8"))
+    for key, info in catalogue.items():
+        missing = required - set(info)
         if missing:
-            raise BuildError(f"{path}: region '{slug}' is missing {sorted(missing)}")
-    return regions
+            raise BuildError(f"{path.name}: '{key}' is missing {sorted(missing)}")
+    return catalogue
 
 
 def read_processed_csv(path: Path) -> pd.DataFrame:
@@ -119,7 +124,9 @@ def build_result(df: pd.DataFrame, regions: dict[str, dict]) -> dict:
     }
 
 
-def index_entry(result: dict, regions: dict[str, dict], file: str) -> dict:
+def index_entry(
+    result: dict, regions: dict[str, dict], variables: dict[str, dict], file: str
+) -> dict:
     """One index.json row: what exists and the headline facts, without the series."""
     meta = result["metadata"]
     return {
@@ -128,6 +135,8 @@ def index_entry(result: dict, regions: dict[str, dict], file: str) -> dict:
         "lat": meta["lat"],
         "lon": meta["lon"],
         "variable": meta["variable"],
+        "variable_name": variables[meta["variable"]]["name"],
+        "variable_description": variables[meta["variable"]]["description"],
         "unit": meta["unit"],
         "source": meta["source"],
         "file": file,
@@ -146,13 +155,15 @@ def build(
     processed_dir: Path = PROCESSED_DIR,
     regions_path: Path = REGIONS_PATH,
     out_dir: Path = OUT_DIR,
+    variables_path: Path = VARIABLES_PATH,
 ) -> list[dict]:
     """Build and validate everything in memory, then write. Returns the index entries.
 
     Nothing is written unless every input is valid, so a failed build never leaves
     half-updated output behind.
     """
-    regions = load_regions(regions_path)
+    regions = load_catalogue(regions_path, {"name", "lat", "lon"})
+    variables = load_catalogue(variables_path, {"name", "description"})
     csv_paths = sorted(processed_dir.glob("*.csv"))
     if not csv_paths:
         raise BuildError(f"No processed CSV files found in {processed_dir}")
@@ -166,12 +177,16 @@ def build(
         except BuildError as exc:
             raise BuildError(f"{csv_path.name}: {exc}") from exc
         meta = result["metadata"]
+        if meta["variable"] not in variables:
+            raise BuildError(
+                f"{csv_path.name}: variable '{meta['variable']}' is not in the variables config"
+            )
         name = f"{meta['region']}_{meta['variable']}".lower() + ".json"
         if name in results:
             raise BuildError(f"{csv_path.name}: a second CSV produces the same output {name}")
         validate_payload(result, RESULT_SCHEMA_PATH, f"result built from {csv_path.name}")
         results[name] = result
-        index.append(index_entry(result, regions, f"results/{name}"))
+        index.append(index_entry(result, regions, variables, f"results/{name}"))
     validate_payload(index, INDEX_SCHEMA_PATH, "index.json")
 
     results_dir = out_dir / "results"
@@ -196,11 +211,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build result JSON files for the frontend.")
     parser.add_argument("--processed-dir", type=Path, default=PROCESSED_DIR)
     parser.add_argument("--regions", type=Path, default=REGIONS_PATH)
+    parser.add_argument("--variables", type=Path, default=VARIABLES_PATH)
     parser.add_argument("--out-dir", type=Path, default=OUT_DIR)
     args = parser.parse_args(argv)
 
     try:
-        index = build(args.processed_dir, args.regions, args.out_dir)
+        index = build(args.processed_dir, args.regions, args.out_dir, args.variables)
     except ValueError as exc:  # BuildError and SchemaError
         print(f"BUILD FAILED: {exc}", file=sys.stderr)
         return 1

@@ -1,16 +1,16 @@
 {
   "metadata": {
     "region": "nile_delta",
-    "lat": 30.95,
-    "lon": 31.0,
     "variable": "NDVI",
     "unit": "NDVI",
     "source": "NASA MODIS MOD13A3.061",
+    "lat": 30.95,
+    "lon": 31.0,
+    "is_mock": false,
     "date_range": {
       "start": "2001-01",
       "end": "2024-12"
-    },
-    "is_mock": false
+    }
   },
   "series": [
     {
@@ -1464,13 +1464,17 @@
     "autocorrected": false
   },
   "verdict": {
-    "headline": "Statistically significant decreasing NDVI anomalies",
-    "summary": "Monthly anomalies are decreasing by Kendall's tau (-0.341). Sen's slope is -0.02131 NDVI per decade; ordinary Mann–Kendall p=5.727e-18 (alpha=0.05, n=288). Autocorrelation has not yet been corrected.",
+    "headline": "Provisional decreasing NDVI trend in the central Nile Delta study area",
+    "summary": "Central Nile Delta study area, 2001-01–2024-12 (n=288 monthly observations): decreasing NDVI anomalies. Calendar-based Sen slope=-0.0213094156339 NDVI/decade; ordinary Mann–Kendall tau-a=-0.341415021293, two-sided p=5.72651111606e-18 (alpha=0.05), nominally significant under independence and provisional. Yue–Wang lag-1 sensitivity on the same anomalies: two-sided p=6.58924037745e-12, nominally significant under its assumptions; tau and calendar Sen slope are unchanged. Neither test establishes a scientifically conclusive or causal vegetation change.",
     "caveats": [
-      "Autocorrelation has not yet been corrected; ordinary Mann–Kendall assumes independent observations, so its p-value and significance are provisional.",
-      "Monthly climatological means are estimated from available observations in this input period, not an independent reference baseline; short or uneven records can distort anomalies and reduce power. The test uses an asymptotic p-value, which may be unreliable for small samples. A nonsignificant test does not prove stability.",
-      "Missing observations are excluded from estimation without interpolation; calendar gaps are preserved for Sen's slope. Missingness and changing spatial coverage can bias trends; upstream pixel QA is assumed and no extra QA cutoff is applied.",
-      "NDVI trends describe vegetation index changes, not their causes. Monthly dates are represented by month starts; slopes use anomalies and actual decimal years."
+      "The structured trend is ordinary MK without autocorrelation correction; its significance assumes independent observations and remains provisional. Yue–Wang lag-1 is a sensitivity comparison, not a replacement primary method.",
+      "Yue–Wang lag-1 diagnostics: S=-14110, variance(S)=4222289.46833991, z=-6.8662914137; ordinary variance(S)=2667952, z=-8.63788121665; variance multiplier=1.58259573948. P-values use the validated erfc(abs(z)/sqrt(2)) evaluation of the same continuity-corrected normal tail, avoiding CDF-subtraction precision loss.",
+      "Lag-1 correction omits longer-lag dependence and uses approximate inference with estimated detrending and dependence. Existing Stage 4A simulations showed residual false-positive inflation; they do not establish calibrated real-data significance. No simulations or new methods are run for this export.",
+      "Coverage of the documented 4,304-pixel eligible mask: minimum 13.731413%, median 98.838290%, maximum 100.000000%; 43/288 months below 80%, 69/288 below 90%, 89/288 below 95%. All observations are retained without interpolation or a new coverage cutoff.",
+      "Spatial coverage is seasonally uneven and the contributing pixel subset changes within the fixed eligible mask, potentially biasing regional means. The per-pixel 80% temporal eligibility rule is distinct from monthly spatial coverage; neither assures spatial representativeness. Stage 1's flagged 2023-02 observation remains included for review.",
+      "Anomalies are recomputed from raw NDVI using each calendar month's 2001–2024 mean, including low-coverage months, rather than an independent reference baseline. Supplied CSV anomalies are ignored. Slope uses month-start decimal years with actual 365/366-day years, in NDVI/decade. Baseline and dependence-estimation uncertainty are not separately propagated.",
+      "Pixel-level QA, scaling, raster alignment and processing provenance have not been independently authenticated by this CSV-only export. Documented Good-only QA is an upstream processing assumption.",
+      "Spatial scope is the central Nile Delta study area: documented longitude 30.7000–31.3083 and latitude 30.7000–31.2083 degrees. The pixel mean is not explicitly area-weighted. These results do not represent the entire Nile Delta, identify causes, or establish ecological importance. Prior Stage 4B checks support declining direction for the tested windows, not a constant slope or robustness to every possible period."
     ]
   }
 }

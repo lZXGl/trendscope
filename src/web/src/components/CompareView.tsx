@@ -4,62 +4,38 @@ import type { TrendIndexItem, TrendResult } from "../types/trend";
 import { TrendChart } from "./TrendChart";
 import { VerdictCard } from "./VerdictCard";
 
-interface CompareViewProps {
-  items: TrendIndexItem[];
+function Investigation({ items, label, initialFile }: { items: TrendIndexItem[]; label: string; initialFile: string }) {
+  const [file, setFile] = useState(initialFile);
+  const [result, setResult] = useState<TrendResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setResult(null);
+    setError(null);
+    if (file) loadResult(file).then(value => { if (!cancelled) setResult(value); })
+      .catch(err => { if (!cancelled) setError(String(err.message)); });
+    return () => { cancelled = true; };
+  }, [file]);
+  return <div className="space-y-4 min-w-0">
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <label htmlFor={label} className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">{label}</label>
+      <select id={label} value={file} onChange={e => setFile(e.target.value)} className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+        {items.map(item => <option key={item.file} value={item.file}>{item.region_name} — {item.variable_name} ({item.variable})</option>)}
+      </select>
+    </div>
+    {error ? <div role="alert" className="rounded-xl border border-rose-200 p-4 text-rose-800">{error}</div> : result ? <>
+      <TrendChart result={result} compact /><VerdictCard result={result} />
+    </> : <div role="status" className="p-8 text-sm text-slate-500">Loading investigation...</div>}
+  </div>;
 }
 
-export function CompareView({ items }: CompareViewProps) {
-  const [leftFile, setLeftFile] = useState(items[0]?.file ?? "");
-  const [rightFile, setRightFile] = useState(items[1]?.file ?? items[0]?.file ?? "");
-  const [leftResult, setLeftResult] = useState<TrendResult | null>(null);
-  const [rightResult, setRightResult] = useState<TrendResult | null>(null);
-
-  useEffect(() => {
-    if (!leftFile) return;
-    loadResult(leftFile).then(setLeftResult).catch(() => setLeftResult(null));
-  }, [leftFile]);
-
-  useEffect(() => {
-    if (!rightFile) return;
-    loadResult(rightFile).then(setRightResult).catch(() => setRightResult(null));
-  }, [rightFile]);
-
-  return (
+export function CompareView({ items }: { items: TrendIndexItem[] }) {
+  if (!items.length) return <p>No observed datasets are available for comparison.</p>;
+  return <div className="space-y-4">
+    {items.length < 2 && <p className="text-sm text-slate-600">Only one observed dataset is published. Both panes show it; independent region comparison is unavailable.</p>}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {[
-        { label: "Investigation A", file: leftFile, setFile: setLeftFile, result: leftResult },
-        { label: "Investigation B", file: rightFile, setFile: setRightFile, result: rightResult },
-      ].map((pane, idx) => (
-        <div key={idx} className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-              {pane.label}
-            </label>
-            <select
-              value={pane.file}
-              onChange={(e) => pane.setFile(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-            >
-              {items.map((item) => (
-                <option key={item.file} value={item.file}>
-                  {item.region_name} — {item.variable_name} ({item.variable})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {pane.result ? (
-            <>
-              <TrendChart result={pane.result} compact />
-              <VerdictCard result={pane.result} />
-            </>
-          ) : (
-            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-              Loading investigation...
-            </div>
-          )}
-        </div>
-      ))}
+      <Investigation items={items} label="Investigation A" initialFile={items[0].file} />
+      <Investigation items={items} label="Investigation B" initialFile={items[1]?.file ?? items[0].file} />
     </div>
-  );
+  </div>;
 }

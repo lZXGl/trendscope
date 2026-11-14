@@ -1,0 +1,35 @@
+# Prepared configuration only. Applying it creates a paid service; no deployment occurred.
+services:
+  - type: web
+    name: trendscope-api
+    runtime: python
+    repo: https://github.com/lZXGl/trendscope
+    branch: feat/arbitrary-aoi-api
+    region: frankfurt
+    plan: standard
+    numInstances: 1
+    autoDeployTrigger: 'off'
+    buildCommand: uv sync --frozen --extra api --no-dev
+    startCommand: .venv/bin/gunicorn --config deploy/backend/gunicorn.conf.py --bind "0.0.0.0:$PORT" 'src.pipeline.job_runtime:create_app()'
+    healthCheckPath: /healthz
+    disk:
+      name: trendscope-state
+      mountPath: /var/data
+      sizeGB: 20
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.10
+      - key: UV_VERSION
+        value: 0.13.8
+      - key: JOB_STORE_DIR
+        value: /var/data/jobs
+      - key: JOB_WORKER_MODE
+        value: cached
+      - key: JOB_CACHE_MANIFEST
+        value: /opt/render/project/src/config/cached_observations.json
+      - key: JOB_API_ACCESS_TOKEN
+        generateValue: true
+      - key: JOB_REQUESTS_PER_MINUTE
+        value: '120'
+      - key: JOB_NEW_JOBS_PER_DAY
+        value: '10'

@@ -1,0 +1,4 @@
+# Replace with the API domain. Its DNS must point at this persistent host.
+api.example.com {
+    reverse_proxy 127.0.0.1:8787
+}

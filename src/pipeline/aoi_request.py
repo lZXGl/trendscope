@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Bump when the NASA processing or the statistics change in a way that makes old cached
 # results wrong. A new version gives every request a new fingerprint (a fresh cache).
-PROCESSING_VERSION = "1"
+PROCESSING_VERSION = "2"
 
 PRODUCT = "MOD13A3.061"
 DEFAULT_START_DATE = "01-01-2001"  # MM-DD-YYYY, the format src/data/fetch.py sends to AppEEARS

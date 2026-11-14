@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -101,6 +102,10 @@ def submit_modis_ndvi_task(
     return resp.json()["task_id"]
 
 
+class NasaTaskUnavailable(RuntimeError):
+    """A task ID is terminal/expired or no longer exists; it cannot be polled to success."""
+
+
 def download_appeears_rasters(
     token: str,
     task_id: str,
@@ -115,12 +120,16 @@ def download_appeears_rasters(
 
     while True:
         status_resp = requests.get(f"{APPEEARS_API}/task/{task_id}", headers=headers, timeout=30)
+        if status_resp.status_code in {404, 410}:
+            raise NasaTaskUnavailable(
+                f"AppEEARS task {task_id} unavailable (HTTP {status_resp.status_code})"
+            )
         status_resp.raise_for_status()
         status = status_resp.json().get("status")
         if status == "done":
             break
         if status in {"error", "expired"}:
-            raise RuntimeError(f"AppEEARS task {task_id} failed with status: {status}")
+            raise NasaTaskUnavailable(f"AppEEARS task {task_id} failed with status: {status}")
         if time.monotonic() > deadline:
             raise TimeoutError(f"AppEEARS task {task_id} timed out after {timeout_seconds}s")
         time.sleep(poll_seconds)
@@ -181,13 +190,35 @@ def process_modis_rasters(
     end_ym: str | None = None,
 ) -> pd.DataFrame:
     """Filter MODIS NDVI GeoTIFFs by QA, apply fixed eligible-pixel mask, and export CSV."""
-    ndvi_files = sorted(raster_dir.glob("*_NDVI_doy*.tif*"))
-    qa_by_ym: dict[str, Path] = {}
-    for qa_path in sorted(raster_dir.glob("*_pixel_reliability_doy*.tif*")):
-        qa_by_ym[_doy_to_year_month(qa_path.name)] = qa_path
 
-    if not ndvi_files:
+    def inventory(layer):
+        found = {}
+        for path in sorted(raster_dir.glob(f"*_{layer}_doy*")):
+            if path.suffix.lower() not in {".tif", ".tiff"}:
+                continue  # Never treat interrupted .tmp downloads as observations.
+            ym = _doy_to_year_month(path.name)
+            if start_ym and end_ym and not start_ym <= ym <= end_ym:
+                continue
+            if ym in found:
+                raise ValueError(f"Duplicate {layer} acquisition for {ym}")
+            found[ym] = path
+        return found
+
+    if (start_ym is None) != (end_ym is None):
+        raise ValueError("Both requested calendar endpoints are required")
+    ndvi_by_ym = inventory("NDVI")
+    qa_by_ym = inventory("pixel_reliability")
+    if not ndvi_by_ym:
         raise FileNotFoundError(f"No MODIS NDVI GeoTIFFs found in {raster_dir}")
+    if ndvi_by_ym.keys() != qa_by_ym.keys():
+        raise ValueError("Incomplete aligned NDVI/pixel_reliability acquisition inventory")
+    # Without explicit endpoints, use the continuous observed extent, including gaps.
+    start_ym = start_ym or min(ndvi_by_ym)
+    end_ym = end_ym or max(ndvi_by_ym)
+    full_dates = pd.period_range(start_ym, end_ym, freq="M").strftime("%Y-%m")
+    if len(full_dates) == 0:
+        raise ValueError("Empty requested calendar")
+    ndvi_files = [ndvi_by_ym[ym] for ym in sorted(ndvi_by_ym)]
 
     allowed_qa = (0, 1) if allow_marginal else (0,)
     monthly_arrays: list[tuple[str, np.ndarray, np.ndarray]] = []
@@ -224,7 +255,7 @@ def process_modis_rasters(
         monthly_arrays.append((ym, ndvi_raw, valid_mask))
 
     # Fixed eligible-pixel mask across study period to avoid shifting-sample bias
-    presence = np.mean([m for _, _, m in monthly_arrays], axis=0)
+    presence = np.sum([m for _, _, m in monthly_arrays], axis=0) / len(full_dates)
     eligible_mask = presence >= min_pixel_presence
     eligible_total = int(eligible_mask.sum())
     if eligible_total == 0:
@@ -332,6 +363,7 @@ def run_modis_aoi(
             "valid_raw_range": [-2000, 10000],
             "allow_marginal": allow_marginal,
             "min_pixel_presence": min_pixel_presence,
+            "pixel_presence_denominator": "requested_calendar_months",
         },
         "mask": {"min_pixel_presence": min_pixel_presence},
         "aoi": aoi,
@@ -363,6 +395,10 @@ def run_modis_aoi(
             start_ym=start_ym,
             end_ym=end_ym,
         )
+        meta["output_csv"] = {
+            "name": out_csv.name,
+            "sha256": hashlib.sha256(out_csv.read_bytes()).hexdigest(),
+        }
         grid_info = inspect_raster_metadata(raster_dir)
         mean_cov = float(df["valid_fraction"].mean()) if not df.empty else 0.0
         avail = int(df["raw_value"].notna().sum())
@@ -376,6 +412,8 @@ def run_modis_aoi(
     except Exception as exc:
         meta["status"] = "failed"
         meta["error"] = str(exc)
+        if isinstance(exc, NasaTaskUnavailable):
+            meta["error_code"] = "NASA_TASK_UNAVAILABLE"
 
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta_path

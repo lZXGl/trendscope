@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from nasa_fixture import manifest
 
 from src.pipeline.aoi_job import JobFailed, create_or_reuse_job, main, run_job
 from src.pipeline.aoi_request import AoiRequest, InvalidRequest
@@ -54,6 +55,7 @@ class FakeNasa:
                 + rows,
                 encoding="utf-8",
             )
+        meta.update(manifest(aoi, task_id, processed_dir, status=self.status, **kwargs))
         meta_path = processed_dir / f"{aoi['region_id']}_meta.json"
         meta_path.write_text(json.dumps(meta), encoding="utf-8")
         return meta_path
@@ -79,7 +81,7 @@ def test_same_area_gives_same_fingerprint_and_settings_change_it():
     assert base.job_id() != AoiRequest(bbox=(30.8, 30.7, 31.2, 31.2)).job_id()
     assert base.job_id() != AoiRequest(bbox=BBOX, allow_marginal=True).job_id()
     assert base.job_id() != AoiRequest(bbox=BBOX, end_date="12-31-2023").job_id()
-    assert base.job_id() != AoiRequest(bbox=BBOX, processing_version="2").job_id()
+    assert base.job_id() != AoiRequest(bbox=BBOX, processing_version="3").job_id()
 
 
 @pytest.mark.parametrize(
@@ -178,14 +180,14 @@ def test_no_usable_pixels_is_a_permanent_failure(store, tmp_path):
     assert failed["status"] == "failed" and failed["retryable"] is False
 
 
-def test_nasa_timeout_is_retryable_and_resumes_the_same_nasa_task(store, tmp_path):
+def test_nasa_poll_window_expiry_stays_processing_and_resumes_same_task(store, tmp_path):
     slow = FakeNasa("failed", "AppEEARS task nasa-task-1 timed out after 1800s")
     job = create_or_reuse_job(store, AoiRequest(bbox=BBOX))
     failed = _run(store, job["job_id"], tmp_path, slow)
-    assert failed["status"] == "failed" and failed["retryable"] is True
+    assert failed["status"] == "processing" and failed["stage"] == "waiting_for_nasa"
 
     requeued = create_or_reuse_job(store, AoiRequest(bbox=BBOX))
-    assert requeued["status"] == "queued"
+    assert requeued["status"] == "processing"
     assert requeued["nasa_task_id"] == "nasa-task-1"
 
     ready = FakeNasa()

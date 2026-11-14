@@ -1,0 +1,26 @@
+[Unit]
+Description=TrendScope durable AOI API and worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trendscope
+Group=trendscope
+WorkingDirectory=/opt/trendscope
+EnvironmentFile=/etc/trendscope/api.env
+Environment=JOB_STORE_DIR=/var/lib/trendscope
+ExecStart=/opt/trendscope/.venv/bin/gunicorn --config deploy/backend/gunicorn.conf.py src.pipeline.job_runtime:create_app()
+Restart=on-failure
+RestartSec=5
+StateDirectory=trendscope
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/trendscope
+
+[Install]
+WantedBy=multi-user.target

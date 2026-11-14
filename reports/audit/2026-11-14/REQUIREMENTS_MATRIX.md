@@ -75,3 +75,7 @@ J assesses five criteria, scored 1–5. These are evaluation dimensions, not a r
 | Forecasts, calibrated CIs, causes (not established requirements) | Not implemented/validated | MISSING optional research | Do not promise them; no mandatory feature deficit |
 
 Acceptance is about an accessible, scientifically qualified investigation. It does not require worldwide arbitrary polygons, multiple independent datasets, a climate model, machine learning, a globe, or a particular UI framework unless the project itself promises them.
+
+## Resumed snapshot note
+
+Latest separate branches are F2 c8813a89193c66843f7f6bcb50e2bf1ace1b500d and B2 731819a5d2eeacd4838d08b3e7f466135f5c8ac4. Main remains ce0b07b. F2 addresses the old example/result overwrite and broad wrong-centre substitution, but wrong-calendar result acceptance remains. B2 implements local HTTP service/queue/locks/auth/CORS/quotas and exact cached-CSV binding; original NASA lineage and live fetch-manifest binding remain unverified/defective. Backend183 tests and local measured Gunicorn smoke passed; frontend12 unit tests, typecheck and build passed. A02/A09/A12 were reproduced against latest snapshots. See RELEASE_AUDIT.md reconciliation and INTEGRATION_CONTRACT_AUDIT.md for current gates. No hosted or fresh NASA validation occurred.

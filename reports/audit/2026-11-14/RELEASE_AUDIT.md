@@ -1,3 +1,5 @@
+> **Resumed audit completed:** The three remaining reports now exist. Main is still ce0b07becfb0952992fa002f48fdbb76cfe78a1d. Latest separate committed frontend is c8813a89193c66843f7f6bcb50e2bf1ace1b500d (F2); backend is 731819a5d2eeacd4838d08b3e7f466135f5c8ac4 (B2). Read the reconciliation below before treating historical findings as current. Total register: **27 findings: 4 P0, 17 P1, 6 P2**, including historical main-only defects and two new current-branch defects. These are not 27 unresolved defects in a combined release. No combined release is deployed/verified.
+
 # TrendScope independent release audit
 
 Audit date: 2026-11-14. Read-only source audit; output and all injected fixtures live outside the application worktrees. No production edits, Git mutations beyond requested metadata fetches, NASA jobs/downloads, deployments or remote write tests were performed. Tests use exported Git snapshots and temporary synthetic data. Active agents were neither interrupted nor assumed correct.
@@ -47,7 +49,7 @@ Evidence logs, hashes, probes and test fixtures are under `evidence/`, `probes/`
 
 ## Findings register
 
-**25 confirmed observed findings: 3 P0, 16 P1, 6 P2.** These count observed defects/risks, not 25 independently active failures in a composed latest release. A05 establishes an eligibility risk, not an organizer disqualification; A18 concerns the service awaiting activation.
+**Initial pass: 25 confirmed observed findings: 3 P0, 16 P1, 6 P2.** These count observed defects/risks, not 25 independently active failures in a composed latest release. A05 establishes an eligibility risk, not an organizer disqualification; A18 concerns the service awaiting activation.
 
 ### A01 — P0 — Advertised live AOI workflow has no committed hosted API
 
@@ -87,7 +89,7 @@ Evidence logs, hashes, probes and test fixtures are under `evidence/`, `probes/`
 - **Impact:** A correct backend can still yield wrong-area statistics in the browser.
 - **Minimum recommended action:** Use one result/display generation across both catalogue and job requests; invalidate pending catalogue loads when a job becomes the display source.
 - **Owner:** FRONTEND
-- **Concurrent agent status:** Agent 1 active; latest observed WIP still has separate catalogue and job generations.
+- **Concurrent agent status:** Agent 1 active at the initial pass; F2 later separates example and analysis state (see reconciliation).
 - **Proof required to close:** Delay catalogue response until after custom completion; custom result must remain displayed, including after region changes and overlapping polls.
 - **Confidence:** CONFIRMED
 
@@ -305,7 +307,7 @@ Evidence logs, hashes, probes and test fixtures are under `evidence/`, `probes/`
 
 **Branch/commit:** origin/main @ `ce0b07becfb0952992fa002f48fdbb76cfe78a1d`.
 
-- **Exact reference:** data/README.md; reports/nile_delta_ndvi_data_quality.md:11; data/archives/seed-102/archive-index.json
+- **Exact reference:** data/README.md; reports/nile_delta_ndvi_data_quality.md:11; data/archives/seed-102/archive-index.json (science branch/local inventory, not a main source file)
 - **Evidence / shortest reproduction:** Preserved CSV arithmetic is reproducible, but original Nile Delta raw rasters and an authenticated task-to-file checksum chain are not in the exported release. Local raw inventory now contains Canadian seed-102 research rasters (bounds roughly -72.73,46.07 to -72.22,46.58), not Nile Delta, plus unrelated metadata. Seed-102 archives have null publication URLs and experimental .6 eligibility; they cannot validate the .8 production baseline.
 - **Expected versus actual:** Strong provenance/QA claims need a durable manifest and reviewable source lineage, not only compatible CSV labels.
 - **Impact:** NASA origin, actual original QA mask and resampling cannot be independently authenticated in this audit. This is a missing-validation limitation, not proof of fabrication.
@@ -412,3 +414,58 @@ No verified off-machine archive for the original Nile Delta source inputs was av
 Freeze a composed commit without altering active work, run its exact frontend against its actual HTTP adapter/store, and exercise identity/recovery adversaries. Publish to a public URL with a recorded SHA; verify anonymous refresh, JSON MIME, 404/missing-path behavior, CORS if external, queued/result endpoints, network timeout, restart and job completion before publication. Use offline fixtures first; this audit did not authorize or start a real NASA acceptance job. After those gates, a separately authorized live acquisition is still needed to certify end-to-end operation. A hosted deployment cannot be certified from the successful local builds here.
 
 Submission owner must separately verify registration/team eligibility, required form, public demo/final link, English materials, references/SI disclosure and the pre-event-work ruling. None can be inferred from a passing repository suite.
+
+## Resumed audit: latest committed reconciliation
+
+F2 and B2 are clean independent worktrees at the recorded cutoff, unmerged into main. No agent files were modified. Source was exported to isolated scratch. B2 frozen install and183 tests passed; actual local Gunicorn cached-only HTTP smoke completed288 months with correct preserved arithmetic. F2 clean npm install/typecheck/12 unit tests/build passed. Final JS bundle is4.49MB (1.39MB gzip); constrained-device performance remains unverified. An independent headless browser adversary reproduced the remaining calendar identity defect. This is local evidence, not hosted/NASA verification.
+
+| Findings | Latest status |
+|---|---|
+| A01 | Still missing on main; B2 now implements real local HTTP/worker. Hosted and composed acceptance remain missing. |
+| A02 | F2 rejects unrelated centres, but accepts same-centre wrong-period result. Confirmed final browser reproduction. |
+| A03 | Removed in F2 source through separate example/analysis state; old F reproduction is historical. Hosted integration not certified. |
+| A04/A05 | Recorded access/eligibility risks remain external verification gates. No new public probe or organizer ruling. |
+| A06/A07 | Main defects; F2/B2 contain explicit observed-only and cache/result-ownership protections. |
+| A08 | Addressed in B2 LocalJobStore and worker with unique tempfiles, fsync, admission/execution locks. Old fake-store duplicate reproduction is not applied to this new lock-aware runtime. |
+| A09/A10 | Still present; mismatched fetch-manifest completion independently reproduced on B2. Requested-calendar eligibility code unchanged. |
+| A11 | Corrupt JSON reads still escape clean job-integrity transitions; runtime reports503. New global consequence is A27. |
+| A12 | Still confirmed: expired remote task remains retryable with same ID on B2. |
+| A13 | Manual Actions worker limitation only; B2 live scanner is a separate durable on-host queue and does not use Actions. |
+| A14 | Main checkpoint loss; B2 adds intent/confirmed-ID durable checkpoints and process locks. Crash in ambiguous interval requires manual reconciliation. |
+| A15 | B2 dynamic result delivery works locally; public host/disk/DNS/auth/client acceptance not verified. Static gate remains deliberate. |
+| A16 | Main presentation defect; F2 provisional UI improves it. Original provenance and autocorrelation limits remain. |
+| A17/A18 | B2 replaces the old service: result ownership/schema checks, CORS, Bearer auth,8192-byte body cap, date bounds and persistent quotas are implemented/tested. Historical S branch is not the current API. |
+| A19–A21 | Provenance gap, raster-cache repair and short-sample policy remain. |
+| A22/A23/A25 | Main documentation/dependency/calendar-chart issues; latest branches improve these; production main unchanged. |
+| A24 | Larger F2 bundle measured; no mobile performance claim made. |
+
+Current service topology is single persistent Linux host, one Gunicorn process/four threads, one serial background scanner, file locks and private durable files. It is not a serverless/GitHub live queue. Cached measured-CSV reuse is bound to exact request/hash; live fetch manifests are recorded but not validated against the request. NASA-mode processing was tested through controlled adapters, never a fresh remote request.
+
+### A26 — P0 — Latest frontend cannot authenticate to latest backend
+
+**Branch/commit:** feat/frontend-geographic-ux @ `c8813a89193c66843f7f6bcb50e2bf1ace1b500d`; feat/arbitrary-aoi-api @ `731819a5d2eeacd4838d08b3e7f466135f5c8ac4`.
+
+- **reference:** F2 src/web/src/lib/jobClient.ts:69,102,110; B2 src/pipeline/job_runtime.py:61; docs/live_api_contract.md:9
+- **evidence:** F2 sends no Authorization header on POST/status/result. B2 requires a Bearer token; current runtime probe returns401 without one and202 with an audit-only token. Backend docs suggest VITE_API_BASE_URL origin, while frontend reads VITE_JOB_API_BASE_URL with /api suffix.
+- **expected_vs_actual:** Configured service should accept the intended frontend request; current independent branches disagree on auth and base configuration.
+- **impact:** The newly implemented HTTP service cannot complete the advertised browser workflow even when separately deployed.
+- **minimum_action:** Agree base variable/path and runtime access or trusted proxy; never embed API/NASA secrets in public VITE_ variables.
+- **owner:** FRONTEND / BACKEND
+- **other_agent:** Agent work is committed separately; no fix implemented by auditor.
+- **verification:** Actual browser against real HTTP adapter authenticates POST/poll/result with agreed base config, survives refresh and rejects invalid access.
+- **confidence:** CONFIRMED
+
+### A27 — P1 — One corrupt job file blocks unrelated new admissions
+
+**Branch/commit:** feat/arbitrary-aoi-api @ `731819a5d2eeacd4838d08b3e7f466135f5c8ac4`.
+
+- **reference:** B2 src/pipeline/job_runtime.py:98; src/pipeline/job_worker.py:185
+- **evidence:** After one valid queued request, create jobs/aoi_0000000000000000.json containing {broken. An unrelated authenticated valid POST returns503 because pending-count scan parses every file without isolation. evidence/final-http-boundaries.json.
+- **expected_vs_actual:** Corruption should isolate the damaged job; unrelated valid work should remain available.
+- **impact:** A damaged file can disable all new requests until an operator removes/quarantines it; worker scanning only logs the corrupt record.
+- **minimum_action:** Quarantine invalid records and make admission counting/recovery tolerate isolated corruption while retaining evidence.
+- **owner:** BACKEND
+- **other_agent:** Agent work is committed separately; no fix implemented by auditor.
+- **verification:** Corrupt one job/status file then submit and finish a distinct valid job; damaged job has an actionable integrity state.
+- **confidence:** CONFIRMED
+

@@ -1,0 +1,17 @@
+{
+  "job_id": "aoi_cfcea6f2d695db5e",
+  "status": "completed",
+  "months": 288,
+  "is_mock": false,
+  "trend": {
+    "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
+    "sens_slope": -0.021309415633866107,
+    "slope_unit": "NDVI/decade",
+    "p_value": 5.7265111160568015e-18,
+    "tau": -0.34141502129307005,
+    "significant": true,
+    "autocorrected": false
+  },
+  "state_dir": "/home/mostafa/trendscope-audit/2026-11-14/probes/final-http-state",
+  "server": "Gunicorn HTTP, cached-only"
+}

@@ -34,5 +34,13 @@
   "backend-latest": {
     "ref": "feat/arbitrary-aoi-api",
     "sha": "56b8ef27d0f7b5bfb81bde04e145d9c4f584959b"
+  },
+  "frontend-final": {
+    "ref": "feat/frontend-geographic-ux",
+    "sha": "c8813a89193c66843f7f6bcb50e2bf1ace1b500d"
+  },
+  "backend-final": {
+    "ref": "feat/arbitrary-aoi-api",
+    "sha": "731819a5d2eeacd4838d08b3e7f466135f5c8ac4"
   }
 }

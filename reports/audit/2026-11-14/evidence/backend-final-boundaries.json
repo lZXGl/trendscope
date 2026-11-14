@@ -1,0 +1,22 @@
+{
+  "mismatched_fetch_manifest": {
+    "state": "completed",
+    "error": null,
+    "result_region": "aoi_e15b2cd442c80157"
+  },
+  "expired_retry": {
+    "attempts": [
+      {
+        "status": "failed",
+        "retryable": true,
+        "nasa_task_id": "offline-task"
+      },
+      {
+        "status": "failed",
+        "retryable": true,
+        "nasa_task_id": "offline-task"
+      }
+    ],
+    "fake_submit_total_including_first_probe": 2
+  }
+}

@@ -1,0 +1,2 @@
+import base from './playwright.config';
+export default {...base,testMatch:'**/audit-final.spec.ts',outputDir:'../../../../evidence/frontend-final-browser-artifacts',use:{...base.use,headless:true},webServer:[{command:'npm run preview -- --host 127.0.0.1 --port 4193 --strictPort',url:'http://127.0.0.1:4193'},{command:'VITE_JOB_API_BASE_URL=/api npm run dev -- --host 127.0.0.1 --port 4194 --strictPort',url:'http://127.0.0.1:4194'}]};

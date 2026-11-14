@@ -32,7 +32,8 @@
     "owner": "FRONTEND",
     "other_agent": "Agent 1 working on AOI UX; issue reproduced on its latest committed base, not declared fixed.",
     "verification": "Return a valid result for another AOI or window and require a visible integrity error with no completed-result association.",
-    "confidence": "CONFIRMED"
+    "confidence": "CONFIRMED",
+    "resumed_evidence": "F2 c8813a8 App.tsx:128 checks centre/variable but still accepts same-centre wrong calendar; independent browser reproduction passed. Broad wrong-centre substitution is now rejected."
   },
   {
     "id": "A03",
@@ -47,7 +48,7 @@
     "impact": "A correct backend can still yield wrong-area statistics in the browser.",
     "minimum_action": "Use one result/display generation across both catalogue and job requests; invalidate pending catalogue loads when a job becomes the display source.",
     "owner": "FRONTEND",
-    "other_agent": "Agent 1 active; latest observed WIP still has separate catalogue and job generations.",
+    "other_agent": "F2 c8813a8 separates example and analysis state. Historical reproduction remains valid on F only; no longer asserted present on F2.",
     "verification": "Delay catalogue response until after custom completion; custom result must remain displayed, including after region changes and overlapping polls.",
     "confidence": "CONFIRMED"
   },
@@ -434,6 +435,41 @@
     "owner": "FRONTEND",
     "other_agent": "Fixed in isolated F chart helper; not on audited main.",
     "verification": "Drop interior months and verify explicit gaps/calendar spacing and calendar-year slope guide, with no fabricated observation.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A26",
+    "priority": "P0",
+    "title": "Latest frontend cannot authenticate to latest backend",
+    "scope": [
+      "frontend-final",
+      "backend-final"
+    ],
+    "reference": "F2 src/web/src/lib/jobClient.ts:69,102,110; B2 src/pipeline/job_runtime.py:61; docs/live_api_contract.md:9",
+    "evidence": "F2 sends no Authorization header on POST/status/result. B2 requires a Bearer token; current runtime probe returns401 without one and202 with an audit-only token. Backend docs suggest VITE_API_BASE_URL origin, while frontend reads VITE_JOB_API_BASE_URL with /api suffix.",
+    "expected_vs_actual": "Configured service should accept the intended frontend request; current independent branches disagree on auth and base configuration.",
+    "impact": "The newly implemented HTTP service cannot complete the advertised browser workflow even when separately deployed.",
+    "minimum_action": "Agree base variable/path and runtime access or trusted proxy; never embed API/NASA secrets in public VITE_ variables.",
+    "owner": "FRONTEND / BACKEND",
+    "other_agent": "Agent work is committed separately; no fix implemented by auditor.",
+    "verification": "Actual browser against real HTTP adapter authenticates POST/poll/result with agreed base config, survives refresh and rejects invalid access.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A27",
+    "priority": "P1",
+    "title": "One corrupt job file blocks unrelated new admissions",
+    "scope": [
+      "backend-final"
+    ],
+    "reference": "B2 src/pipeline/job_runtime.py:98; src/pipeline/job_worker.py:185",
+    "evidence": "After one valid queued request, create jobs/aoi_0000000000000000.json containing {broken. An unrelated authenticated valid POST returns503 because pending-count scan parses every file without isolation. evidence/final-http-boundaries.json.",
+    "expected_vs_actual": "Corruption should isolate the damaged job; unrelated valid work should remain available.",
+    "impact": "A damaged file can disable all new requests until an operator removes/quarantines it; worker scanning only logs the corrupt record.",
+    "minimum_action": "Quarantine invalid records and make admission counting/recovery tolerate isolated corruption while retaining evidence.",
+    "owner": "BACKEND",
+    "other_agent": "Agent work is committed separately; no fix implemented by auditor.",
+    "verification": "Corrupt one job/status file then submit and finish a distinct valid job; damaged job has an actionable integrity state.",
     "confidence": "CONFIRMED"
   }
 ]

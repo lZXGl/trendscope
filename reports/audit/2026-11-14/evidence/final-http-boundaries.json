@@ -1,0 +1,42 @@
+{
+  "frontend_without_authorization": [
+    "401 Unauthorized",
+    {
+      "error": "A valid API access token is required."
+    }
+  ],
+  "authorized_valid_request": [
+    "202 Accepted",
+    {
+      "job_id": "aoi_e15b2cd442c80157",
+      "status": "queued",
+      "stage": null,
+      "request": {
+        "bbox": [
+          30.0,
+          30.0,
+          30.5,
+          30.5
+        ],
+        "product": "MOD13A3.061",
+        "start_date": "01-01-2001",
+        "end_date": "12-31-2024",
+        "allow_marginal": false,
+        "min_pixel_presence": 0.8,
+        "processing_version": "1"
+      },
+      "nasa_task_id": null,
+      "error": null,
+      "retryable": false,
+      "result_file": null,
+      "created_at": "2026-11-14T08:52:26+00:00",
+      "updated_at": "2026-11-14T08:52:26+00:00"
+    }
+  ],
+  "new_unrelated_request_after_corrupt_job": [
+    "503 Service Unavailable",
+    {
+      "error": "Job service storage or worker unavailable."
+    }
+  ]
+}

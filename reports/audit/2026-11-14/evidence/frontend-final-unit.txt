@@ -1,0 +1,86 @@
+
+> trendscope-web@0.1.0 test
+> tsx --test tests/*.test.ts
+
+TAP version 13
+# Subtest: AOIs use the selected centre and preserve rectangular dimensions without mutation
+ok 1 - AOIs use the selected centre and preserve rectangular dimensions without mutation
+  ---
+  duration_ms: 4.191625
+  type: 'test'
+  ...
+# Subtest: empty, nonnumeric, out of range and crossing AOIs refuse without snapping
+ok 2 - empty, nonnumeric, out of range and crossing AOIs refuse without snapping
+  ---
+  duration_ms: 1.076125
+  type: 'test'
+  ...
+# Subtest: saved selections restore only valid confirmation and tolerate missing or blocked storage
+ok 3 - saved selections restore only valid confirmation and tolerate missing or blocked storage
+  ---
+  duration_ms: 1.49765
+  type: 'test'
+  ...
+# Subtest: observed release accepts full handoff and refuses mock or unknown provenance classification
+ok 4 - observed release accepts full handoff and refuses mock or unknown provenance classification
+  ---
+  duration_ms: 16.339395
+  type: 'test'
+  ...
+# Subtest: shared schemas reject malformed results, probabilities, status and duplicate catalogue paths
+ok 5 - shared schemas reject malformed results, probabilities, status and duplicate catalogue paths
+  ---
+  duration_ms: 5.184502
+  type: 'test'
+  ...
+# Subtest: calendar dates, duplicate rows and date range are checked before rendering
+ok 6 - calendar dates, duplicate rows and date range are checked before rendering
+  ---
+  duration_ms: 2.548683
+  type: 'test'
+  ...
+# Subtest: chart preserves explicit nulls and inserts absent months without mutation
+ok 7 - chart preserves explicit nulls and inserts absent months without mutation
+  ---
+  duration_ms: 4.777948
+  type: 'test'
+  ...
+# Subtest: decimal calendar years preserve leap days; tiny positive probabilities remain positive
+ok 8 - decimal calendar years preserve leap days; tiny positive probabilities remain positive
+  ---
+  duration_ms: 1.580151
+  type: 'test'
+  ...
+# Subtest: request validation follows backend dimensions, product and actual dates
+ok 9 - request validation follows backend dimensions, product and actual dates
+  ---
+  duration_ms: 1.518343
+  type: 'test'
+  ...
+# Subtest: failed catalogue never falls back to development data; HTML responses are rejected
+ok 10 - failed catalogue never falls back to development data; HTML responses are rejected
+  ---
+  duration_ms: 58.259686
+  type: 'test'
+  ...
+# Subtest: static release does not submit fake or real jobs
+ok 11 - static release does not submit fake or real jobs
+  ---
+  duration_ms: 0.368957
+  type: 'test'
+  ...
+# Subtest: coverage counts absent calendar rows as missing, not 100% completeness
+ok 12 - coverage counts absent calendar rows as missing, not 100% completeness
+  ---
+  duration_ms: 111.623163
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1081.244079

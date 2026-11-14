@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/mostafa/trendscope-audit/2026-11-14/snapshots/backend-final/../../probes/boundary_probe.py", line 29, in <module>
+    from src.pipeline.job_api import make_handler,job_result,submit as api_submit
+ImportError: cannot import name 'make_handler' from 'src.pipeline.job_api' (/home/mostafa/trendscope-audit/2026-11-14/snapshots/backend-final/src/pipeline/job_api.py)

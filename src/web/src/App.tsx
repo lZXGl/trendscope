@@ -79,6 +79,7 @@ export function App() {
       });
     return () => {
       cancelled = true;
+      epoch.current++;
     };
   }, []);
   useEffect(() => {
@@ -126,17 +127,7 @@ export function App() {
   };
 
   async function completed(value: AoiJobStatus, generation: number) {
-    const result = await fetchJobResult(value.result_file!);
-    const [w, s, e, n] = value.request.bbox;
-    if (
-      Math.abs(result.metadata.lat - (s + n) / 2) > 0.0001 ||
-      Math.abs(result.metadata.lon - (w + e) / 2) > 0.0001 ||
-      result.metadata.variable !== "NDVI"
-    ) {
-      throw new Error(
-        "The returned result does not match the requested area. No result has been substituted.",
-      );
-    }
+    const result = await fetchJobResult(value);
     if (generation === epoch.current) {
       setAnalysis(result);
       setJob(value);
@@ -150,24 +141,8 @@ export function App() {
     const generation = epoch.current;
     const poll = async () => {
       try {
-        const updated = await fetchJobStatus(job.job_id);
+        const updated = await fetchJobStatus(job);
         if (cancelled || generation !== epoch.current) return;
-        if (
-          updated.request.bbox.some((v, i) => v !== job.request.bbox[i]) ||
-          (
-            [
-              "product",
-              "start_date",
-              "end_date",
-              "allow_marginal",
-              "min_pixel_presence",
-              "processing_version",
-            ] as const
-          ).some((key) => updated.request[key] !== job.request[key])
-        )
-          throw new Error(
-            "The service changed the selected request. Status could not be confirmed.",
-          );
         if (updated.status === "completed")
           await completed(updated, generation);
         else if (updated.status === "failed") {
@@ -175,7 +150,7 @@ export function App() {
           setJobError(updated.error || "Analysis failed.");
         } else {
           setJob(updated);
-          timer = window.setTimeout(poll, 4000);
+          timer = window.setTimeout(poll, 10000);
         }
       } catch (e) {
         if (!cancelled && generation === epoch.current) {
@@ -186,7 +161,7 @@ export function App() {
         }
       }
     };
-    timer = window.setTimeout(poll, 4000);
+    timer = window.setTimeout(poll, 10000);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -217,16 +192,6 @@ export function App() {
         return;
       }
       const value = response.job;
-      if (
-        value.request.bbox.some(
-          (coordinate, i) => Math.abs(coordinate - payload.bbox[i]) > 0.0001,
-        ) ||
-        value.request.product !== payload.product ||
-        value.request.start_date !== payload.start_date ||
-        value.request.end_date !== payload.end_date
-      ) {
-        throw new Error("The service returned a job for a different request.");
-      }
       if (value.status === "completed") await completed(value, generation);
       else {
         setJob(value);
@@ -285,6 +250,7 @@ export function App() {
             start={start}
             end={end}
             onDates={(a, b) => {
+              if (a === start && b === end) return;
               epoch.current++;
               setSubmitting(false);
               setStart(a);

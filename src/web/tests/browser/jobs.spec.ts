@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { choose } from "./helpers";
 
 // Intercepted contract responses only: no NASA calls and no claims of live hosting.
-test.use({ baseURL: "http://127.0.0.1:4174" });
+test.use({ baseURL: `http://127.0.0.1:${process.env.JOB_PORT}` });
 const id = "aoi_1234567890abcdef";
 const job = (status: string) => ({
   job_id: id,
@@ -31,7 +31,7 @@ test("queued → processing → completed uses selected bbox and documented endp
 }) => {
   // The Nile result must be rejected for Berlin, never relabelled as observations there.
   const result = await (
-    await request.get("http://127.0.0.1:4173/data/results/nile_delta_ndvi.json")
+    await request.get(`http://127.0.0.1:${process.env.PREVIEW_PORT}/data/results/nile_delta_ndvi.json`)
   ).json();
   let polls = 0;
   let submitted: unknown;
@@ -53,10 +53,10 @@ test("queued → processing → completed uses selected bbox and documented endp
   await expect(page.getByText("Request queued", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Retrieving NASA observations", { exact: true }),
-  ).toBeVisible({ timeout: 10000 });
+  ).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole("alert")).toContainText(
     "does not match the requested area",
-    { timeout: 10000 },
+    { timeout: 15000 },
   );
   expect(submitted).toEqual({
     bbox: [13.155, 52.27, 13.655, 52.77],
@@ -72,8 +72,10 @@ test("valid completed request displays its observed result only after explicit s
   request,
 }) => {
   const result = await (
-    await request.get("http://127.0.0.1:4173/data/results/nile_delta_ndvi.json")
+    await request.get(`http://127.0.0.1:${process.env.PREVIEW_PORT}/data/results/nile_delta_ndvi.json`)
   ).json();
+  // Synthetic API fixture: dynamic results identify their owning job, not the static region.
+  result.metadata.region = id;
   const centre = { lat: result.metadata.lat, lon: result.metadata.lon };
   await page.route("**/api/jobs**", (route) => {
     if (route.request().url().endsWith("/result"))
@@ -156,7 +158,7 @@ test("poll failure stops without inventing completion or replacing the result", 
   await choose(page);
   await page.getByRole("button", { name: "Analyze area", exact: true }).click();
   await expect(page.getByText(/Polling stopped/)).toBeVisible({
-    timeout: 10000,
+    timeout: 15000,
   });
   await expect(
     page.getByText("Status unavailable", { exact: true }),

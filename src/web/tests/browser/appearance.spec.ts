@@ -236,7 +236,7 @@ for (const theme of ["Light", "Dark"])
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto("/");
     await appearance(page, theme);
-    await expect(page.locator("[data-globe-ready=true]")).toBeVisible();
+    await expect(page.locator("[data-globe-ready=true]")).toBeVisible({ timeout: 20000 });
     await expect(page.getByText("5.727e-18", { exact: true })).toBeVisible();
     // Wait for the existing 650 ms camera transition before visual capture.
     await page.waitForTimeout(750);

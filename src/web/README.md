@@ -31,8 +31,9 @@ npm run preview -- --host 127.0.0.1 --port 4173
 No frontend lint script exists; strict TypeScript, unit tests, observed-data build
 validation and browser tests are the available checks. Browser tests use installed
 **headed Chromium** (`/usr/bin/chromium-browser`, override with `CHROMIUM_PATH`).
-They start production preview on 4173 and a development server on 4174 for
-intercepted API contract tests. Those fixtures never dispatch NASA work or prove
+They start production preview on 4273 and a development server on 4274 for
+intercepted API contract tests (override with `PREVIEW_PORT`/`JOB_PORT`; existing
+servers are never reused). Those fixtures never dispatch NASA work or prove
 backend hosting. Screenshots normally go to ignored test artifacts; use
 `UPDATE_UX_SCREENSHOTS=1 npm run test:e2e` to refresh the reviewed evidence.
 
@@ -106,3 +107,15 @@ Live AOI analysis awaits the separate deployed HTTP service and configuration of
 `VITE_JOB_API_BASE_URL`. Remote hosting/CORS/service checks remain pending. The
 existing large visualization bundle warning and scientific provenance/calibration
 limits are documented in the handoff. No deployment was performed.
+
+## A02/A26 integration fixes (2026-11-14)
+
+Result acceptance now binds the full echoed request, exact job ID, job-owned result
+path and requested monthly calendar. Same-centre results cannot qualify by centre
+alone. The agreed public access design uses only `VITE_JOB_API_BASE_URL=/api` and
+backend-owned same-origin Node proxy handlers that add Bearer auth server-side.
+Never place secrets in `VITE_` values or browser code. Leave live disabled until
+composed acceptance. See [the final contract](docs/backend-integration.md) and
+[validation, handoff and blockers](docs/integration-fixes-handoff.md). The earlier
+36-test verification above describes the base commit; updated results are in the
+handoff. No deployment was performed.

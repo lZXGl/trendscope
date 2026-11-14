@@ -20,14 +20,16 @@ DIST = ROOT / "src/web/dist"
 
 def main() -> None:
     config = json.loads((ROOT / "vercel.json").read_text())
-    rewrite = re.compile("^" + config["rewrites"][0]["source"] + "$")
+    rewrites = [re.compile("^" + rule["source"] + "$") for rule in config.get("rewrites", [])]
 
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(DIST), **kwargs)
 
         def do_GET(self):  # noqa: N802
-            if not Path(self.translate_path(self.path)).exists() and rewrite.fullmatch(self.path):
+            if not Path(self.translate_path(self.path)).exists() and any(
+                rule.fullmatch(self.path) for rule in rewrites
+            ):
                 self.path = "/index.html"
             super().do_GET()
 
@@ -76,7 +78,7 @@ def main() -> None:
         assert assets, "No JS/CSS assets referenced by production index.html"
         for asset in assets:
             request(asset)
-        request("/compare")
+        request("/compare", 404 if not rewrites else 200)
         for missing in (
             "/data/missing.json",
             "/assets/missing.js",

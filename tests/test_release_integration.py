@@ -324,7 +324,7 @@ def test_static_deployment_only_publishes_verified_precomputed_data(tmp_path, ta
 
 def test_spa_fallback_cannot_swallow_api_or_missing_data():
     config = json.loads((ROOT / "vercel.json").read_text())
-    pattern = re.compile("^" + config["rewrites"][0]["source"] + "$")
+    patterns = [re.compile("^" + rule["source"] + "$") for rule in config.get("rewrites", [])]
     for path in [
         "/api/jobs",
         "/api/jobs/aoi_0123456789abcdef/result",
@@ -332,5 +332,7 @@ def test_spa_fallback_cannot_swallow_api_or_missing_data():
         "/assets/missing.js",
         "/favicon.svg",
     ]:
-        assert not pattern.fullmatch(path)
-    assert pattern.fullmatch("/compare")
+        assert not any(pattern.fullmatch(path) for pattern in patterns)
+    # The static UI has no path router; no rewrites is also a safe configuration.
+    if patterns:
+        assert any(pattern.fullmatch("/compare") for pattern in patterns)

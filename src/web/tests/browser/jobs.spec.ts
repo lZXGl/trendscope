@@ -2,7 +2,7 @@ import {test, expect} from "@playwright/test";
 
 // Simulated HTTP contract tests ONLY. These never dispatch a NASA task or claim
 // backend availability. The production build remains static with jobs disabled.
-test.use({baseURL: "http://127.0.0.1:4174"});
+test.use({baseURL: `http://127.0.0.1:${process.env.JOB_PORT || 4174}`});
 const id = "aoi_1234567890abcdef";
 const job = (status: string) => ({
   job_id: id, status, stage: status === "processing" ? "waiting_for_nasa" : null,
@@ -13,7 +13,7 @@ const job = (status: string) => ({
 });
 
 test("queued → processing → completed uses documented status/result endpoints and dates", async ({page, request}) => {
-  const result = await (await request.get("http://127.0.0.1:4173/data/results/nile_delta_ndvi.json")).json();
+  const result = await (await request.get(`http://127.0.0.1:${process.env.PREVIEW_PORT || 4173}/data/results/nile_delta_ndvi.json`)).json();
   let polls = 0;
   let submitted: unknown;
   await page.route("**/api/jobs**", async route => {

@@ -72,7 +72,29 @@ exclude the native scrollbar, so image widths may be 15px narrower than viewport
 
 ## Verification
 
-See the final execution results below. Browser contract tests intercept responses;
+Final code verified: `c8813a8` (2026-11-14). No application code changes were
+needed during the resumed verification; this follow-up records results and
+refreshes screenshots.
+
+From `src/web`:
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | Passed; zero audit vulnerabilities |
+| `npm run typecheck` | Passed |
+| `npm test` | 12/12 passed |
+| `npm run build` | Passed; observed-data validation passed, existing bundle-size advisory remains |
+| `UPDATE_UX_SCREENSHOTS=1 npm run test:e2e -- tests/browser/appearance.spec.ts` | 20/20 passed, 55.6 s |
+| `npm run test:e2e -- tests/browser/jobs.spec.ts` | 8/8 passed, 26.3 s |
+| `npm run test:e2e -- tests/browser/release.spec.ts` | 8/8 passed, 8.9 s |
+
+All 36 browser tests passed across these three invocations. Earlier combined
+runs were terminated with exit 143; the complete per-file runs supersede them.
+Existing scientific export tests passed 12/12 before this verification; their
+code and inputs remain unchanged. No frontend lint script exists. The final
+screenshots include the last grid/copy edits and were visually checked.
+
+Browser contract tests intercept responses;
 they never send NASA tasks. Screenshot tests exercise map projection/geometry,
 themes, forms, chart modes and details at all six requested widths. Globe rendering,
 actual surface clicks and the no-WebGL fallback are also tested. Primary text and

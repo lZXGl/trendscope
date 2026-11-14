@@ -82,14 +82,27 @@ after a separately authorized deployment. No deployment was performed here.
 See [the UX handoff](docs/geographic-ux-handoff.md) for visual evidence, checks,
 limitations and the manual judge-facing journey.
 
-## Stop point (2026-11-14)
+## Verification completed after resuming (2026-11-14)
 
-The geographic UX/Astryx work is committed on `feat/frontend-geographic-ux`.
-Typecheck, build, 12 frontend unit tests, 12 existing export tests, and 33
-browser tests passed before the final map-grid and empty-state copy edits. A
-subsequent 36-test browser run was terminated with exit 143 after 27 tests; it
-did not finish. Re-run the full browser suite against the final commit and
-refresh the selected-area screenshots, which may predate those last edits.
+The final code from `c8813a8` passes `npm ci` (zero audit vulnerabilities), strict
+TypeScript, all 12 frontend unit tests and the production build. All **36 headed
+Chromium tests pass**, executed by file to avoid interruptions:
 
-Live AOI analysis is still unavailable until the separate HTTP backend is
-deployed and `VITE_JOB_API_BASE_URL` is configured. No deployment was performed.
+```sh
+UPDATE_UX_SCREENSHOTS=1 npm run test:e2e -- tests/browser/appearance.spec.ts
+npm run test:e2e -- tests/browser/jobs.spec.ts
+npm run test:e2e -- tests/browser/release.spec.ts
+```
+
+Results: 20 appearance/layout tests, 8 API contract tests, 8 release/static HTTP
+tests. The earlier interrupted combined runs are superseded by these complete
+results. Screenshots now include the final map grid and empty-state wording;
+Light/Dark views, selected bounds and mobile calendar were visually inspected.
+Existing scientific export tests previously passed 12/12; scientific data and code
+have not changed. No frontend fixes were needed during this resumed verification.
+
+Readiness remains **CONDITIONAL GO** for local selection and the observed example.
+Live AOI analysis awaits the separate deployed HTTP service and configuration of
+`VITE_JOB_API_BASE_URL`. Remote hosting/CORS/service checks remain pending. The
+existing large visualization bundle warning and scientific provenance/calibration
+limits are documented in the handoff. No deployment was performed.

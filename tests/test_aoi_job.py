@@ -178,14 +178,14 @@ def test_no_usable_pixels_is_a_permanent_failure(store, tmp_path):
     assert failed["status"] == "failed" and failed["retryable"] is False
 
 
-def test_nasa_timeout_is_retryable_and_resumes_the_same_nasa_task(store, tmp_path):
+def test_nasa_poll_window_expiry_stays_processing_and_resumes_same_task(store, tmp_path):
     slow = FakeNasa("failed", "AppEEARS task nasa-task-1 timed out after 1800s")
     job = create_or_reuse_job(store, AoiRequest(bbox=BBOX))
     failed = _run(store, job["job_id"], tmp_path, slow)
-    assert failed["status"] == "failed" and failed["retryable"] is True
+    assert failed["status"] == "processing" and failed["stage"] == "waiting_for_nasa"
 
     requeued = create_or_reuse_job(store, AoiRequest(bbox=BBOX))
-    assert requeued["status"] == "queued"
+    assert requeued["status"] == "processing"
     assert requeued["nasa_task_id"] == "nasa-task-1"
 
     ready = FakeNasa()

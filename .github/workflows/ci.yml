@@ -16,13 +16,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --extra api
       - name: Lint with ruff
         run: uv run ruff check .
       - name: Validate mock JSON against shared schema
         run: uv run python scripts/validate_schema.py data/mock/results.mock.json
       - name: Run tests
         run: uv run pytest -v
+      - name: Smoke-test production HTTP API using measured cached observations only
+        run: >-
+          uv run python -m scripts.smoke_job_api
+          --state-dir "$RUNNER_TEMP/http-jobs"
       - name: Verify measured precomputed NDVI build without writing source datasets
         run: >-
           uv run python -m src.pipeline.build

@@ -11,11 +11,14 @@ Manual run (needs APPEEARS_TOKEN, or EARTHDATA_USER + EARTHDATA_PASS, in the env
 """
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import sys
 import tempfile
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -182,7 +185,7 @@ def _default_stats(observations, *, lat: float, lon: float) -> dict:
     return analyze_trend(observations, lat=lat, lon=lon)
 
 
-def run_job(
+def _run_job(
     store: JobStore,
     job_id: str,
     token: str,
@@ -240,7 +243,26 @@ def run_job(
             fetch = fetch or nasa.run_modis_aoi
 
         _save(store, job, stage="waiting_for_nasa")
+        if job["nasa_task_id"] is None and hasattr(store, "get_submission"):
+            checkpoint = store.get_submission(job_id)
+            if checkpoint:
+                if checkpoint.get("request") != request.to_dict():
+                    raise JobFailed(
+                        "NASA checkpoint does not match the exact request.", retryable=False
+                    )
+                if checkpoint.get("task_id"):
+                    _save(store, job, nasa_task_id=checkpoint["task_id"])
+                else:
+                    raise JobFailed(
+                        "Unconfirmed NASA submission. Reconcile existing tasks before retrying; "
+                        "automatic resubmission blocked.",
+                        retryable=False,
+                    )
         if job["nasa_task_id"] is None:
+            if hasattr(store, "put_submission"):
+                store.put_submission(
+                    job_id, {"request": request.to_dict(), "task_id": None, "created_at": _now()}
+                )
             try:
                 task_id = submit(
                     token,
@@ -258,6 +280,11 @@ def run_job(
                     "automatic resubmission blocked.",
                     retryable=False,
                 ) from exc
+            if hasattr(store, "put_submission"):
+                store.put_submission(
+                    job_id,
+                    {"request": request.to_dict(), "task_id": task_id, "confirmed_at": _now()},
+                )
             _save(store, job, nasa_task_id=task_id)
         if prepare_only:
             # The workflow persists this checkpoint before entering NASA's long wait.
@@ -275,11 +302,34 @@ def run_job(
             raster_root=work_dir / "rasters",
             processed_dir=processed_dir,
         )
-        meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
+        meta_bytes = Path(meta_path).read_bytes()
+        meta = json.loads(meta_bytes)
+        if hasattr(store, "put_provenance"):
+            store.put_provenance(
+                job_id,
+                {
+                    "kind": "nasa_processing_attempt",
+                    "request": request.to_dict(),
+                    "nasa_task_id": job["nasa_task_id"],
+                    "metadata": meta,
+                    "metadata_sha256": hashlib.sha256(meta_bytes).hexdigest(),
+                    "metadata_path": str(meta_path),
+                },
+            )
         if meta.get("status") == "low_coverage":
             raise JobFailed("Too few usable satellite pixels in this area.", retryable=False)
         if meta.get("status") != "ok":
             error = str(meta.get("error", "unknown NASA pipeline error"))
+            if re.fullmatch(r"AppEEARS task .+ timed out after \d+s", error):
+                # NASA's queue outlives one bounded polling window. Resume the saved task.
+                return _save(
+                    store,
+                    job,
+                    status="processing",
+                    stage="waiting_for_nasa",
+                    error=None,
+                    retryable=False,
+                )
             permanent = any(marker in error for marker in PERMANENT_NASA_ERRORS)
             raise JobFailed(f"NASA data step failed: {error}", retryable=not permanent)
 
@@ -291,7 +341,11 @@ def run_job(
             validate_quality(observations)
             result = stats(observations, lat=lat, lon=lon)
             validate_cached_result(job, result)
-        except (BuildError, ValueError) as exc:  # bad series or insufficient data
+        except (
+            BuildError,
+            ValueError,
+            NotImplementedError,
+        ) as exc:  # bad series or insufficient data
             raise JobFailed(f"Analysis not possible: {exc}", retryable=False) from exc
         validate_payload(result, RESULT_SCHEMA_PATH, f"result for {job_id}")
 
@@ -302,6 +356,21 @@ def run_job(
     except Exception as exc:  # anything unexpected: report it, allow a retry
         message = f"Unexpected error: {type(exc).__name__}: {exc}"
         return _save(store, job, status="failed", error=message, retryable=True)
+
+
+def run_job(store: JobStore, job_id: str, token: str, work_dir: Path, **kwargs) -> dict:
+    """Serialize execution across HTTP workers and manual CLI invocations."""
+    from filelock import Timeout
+
+    try:
+        with (
+            store.locked(job_id, execution=True, timeout=0)
+            if hasattr(store, "locked")
+            else nullcontext()
+        ):
+            return _run_job(store, job_id, token, work_dir, **kwargs)
+    except Timeout:
+        return store.get_job(job_id)
 
 
 def _token_from_environment() -> str:

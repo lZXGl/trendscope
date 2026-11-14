@@ -82,8 +82,11 @@ uv run python -m src.pipeline.aoi_job run --job-id aoi_<id>
   statistics after an error. Mocks are explicit development builds only.
 - Missing NASA credentials persist a failed status; completed verified caches need no credentials.
 - The manual Actions worker checkpoints its NASA task before downloading and preserves failures.
-  No `/api/jobs` HTTP service is deployed by this code. Committed job files do not create one.
+  Committed job files do not create HTTP endpoints. The new authenticated API and durable
+  worker run separately on a persistent host; no public API has been deployed yet.
 
 The Vercel build serves a verified precomputed Nile Delta NDVI catalogue and reports live
-processing unavailable. See [the current deployment contract](docs/infrastructure.md) and
-[the backend release audit](reports/backend_integration_release.md) for limitations and checks.
+processing unavailable until a backend host is configured. The exact request format,
+status/error handling and curl reproduction are in [the HTTP API contract](docs/live_api_contract.md).
+See [backend host configuration](docs/backend_deployment.md) and
+[the integration verification report](reports/arbitrary_aoi_api_release.md).

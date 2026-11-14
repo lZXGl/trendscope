@@ -27,13 +27,14 @@ Neither source observations nor frontend components are rewritten.
   provisional under dependence; significance is not causation and a
   nonsignificant result is not evidence of ecological stability.
 
-No HTTP job service, Vercel Function or Blob adapter exists on this release base.
-`POST /api/jobs`, `GET /api/jobs/<id>` and `GET /api/jobs/<id>/result` are therefore
-**unavailable**, not fake queued/completed jobs. The existing frontend recognizes
-404/405 on submission and keeps precomputed data available. It must not start
-polling when submission reports unavailable. Client-side mock fallback after a
-catalogue/network failure still needs the frontend owner's attention; this change
-cannot fix that without editing frontend components.
+The backend release branch now provides a locally tested authenticated Python HTTP
+service for `POST /api/jobs`, `GET /api/jobs/<id>` and `GET /api/jobs/<id>/result`.
+It runs on a separate persistent host; Vercel continues to serve static files and
+has no `/api/jobs` handler of its own. No public API has been deployed. Configure
+an explicit backend origin rather than sending jobs to Vercel's static namespace.
+See [the exact frontend API contract](live_api_contract.md) and
+[persistent host setup and blockers](backend_deployment.md). The verified
+precomputed experience remains available independently of that service.
 
 ## Manual GitHub Actions worker
 
@@ -91,12 +92,13 @@ Publication of new real datasets needs a reviewed release build and deployment.
 A push using `GITHUB_TOKEN` does not trigger another Actions push workflow, so
 CI/publication must not be assumed to run recursively.
 
-`origin/feat/backend` at `f367fb2` has unmerged request-service/GitHub-store code.
-It was inspected, not merged or altered. A live release still needs an actual
-hosted adapter, a tested shared persistent store/dispatch path, concurrent-request
-idempotency, safe recovery after interrupted submission/publication, accessible
-HTTP result URLs, and verified repository/NASA permissions. No hosted end-to-end
-claim is made. Use the stable precomputed release until those dependencies pass.
+The service reuses the request routes from `origin/feat/backend` at `f367fb2`,
+existing fingerprints and the frozen processor. A persistent local store plus a
+background consumer provides locally tested concurrent-request idempotency,
+recovery and authenticated HTTP result retrieval. The earlier GitHub Contents
+adapter is not the live deployment path. Local tests do not verify public hosting,
+NASA credentials, remote latency or deployed recovery. Use the stable precomputed
+release until the deployment gates in `backend_deployment.md` pass.
 
 References: [Vercel rewrite configuration](https://vercel.com/docs/project-configuration/vercel-json#negative-lookahead),
 [GitHub concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency),

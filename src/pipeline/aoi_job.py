@@ -22,6 +22,7 @@ from pathlib import Path
 from src.pipeline.aoi_request import (
     DEFAULT_END_DATE,
     DEFAULT_START_DATE,
+    PROCESSING_VERSION,
     AoiRequest,
     InvalidRequest,
 )
@@ -68,6 +69,52 @@ def _is_stale(job: dict) -> bool:
     return datetime.now(UTC) - datetime.fromisoformat(job["updated_at"]) > STALE_AFTER
 
 
+def validate_cached_result(job: dict, result: dict) -> None:
+    """A schema-valid placeholder or another AOI's result is not a real cache hit."""
+    validate_payload(job, JOB_SCHEMA_PATH, "cached job")
+    validate_payload(result, RESULT_SCHEMA_PATH, "cached result")
+    json.dumps(result, allow_nan=False)
+    request = AoiRequest.from_dict(job["request"])
+    if (
+        request.allow_marginal
+        or request.min_pixel_presence != 0.8
+        or request.processing_version != PROCESSING_VERSION
+    ):
+        raise ValueError("Cached result does not use the current production QA/processing contract")
+    lat, lon = request.centre
+    expected = {
+        "region": job["job_id"],
+        "lat": lat,
+        "lon": lon,
+        "variable": "NDVI",
+        "unit": "NDVI",
+        "source": "NASA MODIS MOD13A3.061",
+        "is_mock": False,
+    }
+    meta = result["metadata"]
+    if (
+        request.job_id() != job["job_id"]
+        or meta.get("is_mock") is not False
+        or any(meta.get(key) != value for key, value in expected.items())
+        or "mock" in result["trend"]["method"].lower()
+    ):
+        raise ValueError("Result must be real NDVI for the exact job fingerprint and coordinates")
+    start = datetime.strptime(request.start_date, "%m-%d-%Y")
+    end = datetime.strptime(request.end_date, "%m-%d-%Y")
+    months = [
+        f"{m // 12:04d}-{m % 12 + 1:02d}"
+        for m in range(start.year * 12 + start.month - 1, end.year * 12 + end.month)
+    ]
+    if (
+        meta["date_range"] != {"start": months[0], "end": months[-1]}
+        or [r["date"] for r in result["series"]] != months
+        or result["trend"]["slope_unit"] != "NDVI/decade"
+    ):
+        raise ValueError("Result calendar/units disagree with the job request")
+    if job["status"] == "completed" and job["result_file"] != f"results/{job['job_id']}.json":
+        raise ValueError("Completed job does not point to its own result")
+
+
 def create_or_reuse_job(store: JobStore, request: AoiRequest) -> dict:
     """Cache-first entry point: return the job for this request, creating it only if needed.
 
@@ -79,6 +126,17 @@ def create_or_reuse_job(store: JobStore, request: AoiRequest) -> dict:
     job_id = request.job_id()
     job = store.get_job(job_id)
     if job and job["status"] == "completed" and store.get_result(job_id) is not None:
+        try:
+            validate_cached_result(job, store.get_result(job_id))
+        except ValueError as exc:
+            return _save(
+                store,
+                job,
+                status="failed",
+                error=f"Invalid cached result: {exc}",
+                retryable=False,
+                result_file=None,
+            )
         return job
     if job and job["status"] == "queued":
         return job
@@ -134,6 +192,7 @@ def run_job(
     submit: Callable[..., str] | None = None,
     fetch: Callable[..., Path] | None = None,
     stats: Callable[..., dict] = _default_stats,
+    prepare_only: bool = False,
 ) -> dict:
     """Run one queued job to "completed" or "failed" and return its final status.
 
@@ -146,11 +205,31 @@ def run_job(
     if job is None:
         raise KeyError(f"No such job: {job_id}")
     if job["status"] == "completed" and store.get_result(job_id) is not None:
+        try:
+            validate_cached_result(job, store.get_result(job_id))
+        except ValueError as exc:
+            return _save(
+                store,
+                job,
+                status="failed",
+                error=f"Invalid cached result: {exc}",
+                retryable=False,
+                result_file=None,
+            )
+        else:
+            return job
+    if job["status"] == "failed" and not job["retryable"]:
         return job
     request = AoiRequest.from_dict(job["request"])
     lat, lon = request.centre
 
     try:
+        if (
+            request.allow_marginal
+            or request.min_pixel_presence != 0.8
+            or request.processing_version != PROCESSING_VERSION
+        ):
+            raise JobFailed("Unsupported production QA/processing settings", retryable=False)
         _save(store, job, status="processing", stage="checking_area", error=None, retryable=False)
         land_check(request)
 
@@ -162,14 +241,27 @@ def run_job(
 
         _save(store, job, stage="waiting_for_nasa")
         if job["nasa_task_id"] is None:
-            task_id = submit(
-                token,
-                start_date=request.start_date,
-                end_date=request.end_date,
-                bbox=request.bbox,
-                task_name=f"trendscope_{job_id}",
-            )
+            try:
+                task_id = submit(
+                    token,
+                    start_date=request.start_date,
+                    end_date=request.end_date,
+                    bbox=request.bbox,
+                    task_name=f"trendscope_{job_id}",
+                )
+                if not isinstance(task_id, str) or not task_id.strip():
+                    raise ValueError("Submission returned no task ID")
+            except Exception as exc:
+                raise JobFailed(
+                    f"NASA submission was not confirmed ({type(exc).__name__}). "
+                    "Reconcile existing NASA tasks before retrying; "
+                    "automatic resubmission blocked.",
+                    retryable=False,
+                ) from exc
             _save(store, job, nasa_task_id=task_id)
+        if prepare_only:
+            # The workflow persists this checkpoint before entering NASA's long wait.
+            return job
 
         processed_dir = work_dir / "processed"
         meta_path = fetch(
@@ -192,11 +284,13 @@ def run_job(
             raise JobFailed(f"NASA data step failed: {error}", retryable=not permanent)
 
         _save(store, job, stage="analysing")
-        from src.pipeline.build import BuildError, read_processed_csv
+        from src.pipeline.build import BuildError, read_processed_csv, validate_quality
 
         try:
             observations = read_processed_csv(processed_dir / f"{job_id}_ndvi.csv")
+            validate_quality(observations)
             result = stats(observations, lat=lat, lon=lon)
+            validate_cached_result(job, result)
         except (BuildError, ValueError) as exc:  # bad series or insufficient data
             raise JobFailed(f"Analysis not possible: {exc}", retryable=False) from exc
         validate_payload(result, RESULT_SCHEMA_PATH, f"result for {job_id}")
@@ -216,7 +310,7 @@ def _token_from_environment() -> str:
         return token
     user, password = os.environ.get("EARTHDATA_USER"), os.environ.get("EARTHDATA_PASS")
     if not user or not password:
-        raise SystemExit("Set APPEEARS_TOKEN or EARTHDATA_USER + EARTHDATA_PASS")
+        raise JobFailed("Set APPEEARS_TOKEN or EARTHDATA_USER + EARTHDATA_PASS", retryable=True)
     from src.data.fetch import appeears_login
 
     return appeears_login(user, password)
@@ -227,13 +321,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--store-dir", type=Path, default=DEFAULT_STORE_DIR)
     commands = parser.add_subparsers(dest="command", required=True)
     create = commands.add_parser("create", help="create (or reuse) the job for an area")
-    create.add_argument("--bbox", type=float, nargs=4, required=True,
-                        metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT"))
+    create.add_argument(
+        "--bbox",
+        type=float,
+        nargs=4,
+        required=True,
+        metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT"),
+    )
     create.add_argument("--start-date", default=DEFAULT_START_DATE, help="MM-DD-YYYY")
     create.add_argument("--end-date", default=DEFAULT_END_DATE, help="MM-DD-YYYY")
+    create.add_argument(
+        "--job-id", default="", help="If supplied, must match the request fingerprint"
+    )
     run = commands.add_parser("run", help="run a queued job to completion")
     run.add_argument("--job-id", required=True)
     run.add_argument("--work-dir", type=Path, help="scratch folder for rasters (default: temp)")
+    prepare = commands.add_parser("prepare", help="save a NASA task checkpoint without downloading")
+    prepare.add_argument("--job-id", required=True)
     args = parser.parse_args(argv)
     store = LocalJobStore(args.store_dir)
 
@@ -242,14 +346,33 @@ def main(argv: list[str] | None = None) -> int:
             request = AoiRequest(
                 bbox=tuple(args.bbox), start_date=args.start_date, end_date=args.end_date
             )
+            if args.job_id and args.job_id != request.job_id():
+                raise InvalidRequest("job_id does not match bbox, dates and production settings")
             job = create_or_reuse_job(store, request)
         except InvalidRequest as exc:
             print(f"INVALID REQUEST: {exc}", file=sys.stderr)
             return 1
     else:
-        token = _token_from_environment()
-        with tempfile.TemporaryDirectory() as temp:
-            job = run_job(store, args.job_id, token, args.work_dir or Path(temp))
+        job = store.get_job(args.job_id)
+        if job is None:
+            print("No such job", file=sys.stderr)
+            return 1
+        try:
+            # A valid completed cache needs no NASA credentials or network access.
+            cached = job["status"] == "completed" and store.get_result(args.job_id) is not None
+            terminal = job["status"] == "failed" and not job["retryable"]
+            token = "" if cached or terminal else _token_from_environment()
+            with tempfile.TemporaryDirectory() as temp:
+                job = run_job(
+                    store,
+                    args.job_id,
+                    token,
+                    getattr(args, "work_dir", None) or Path(temp),
+                    prepare_only=args.command == "prepare",
+                )
+        except Exception as exc:
+            message = str(exc) if isinstance(exc, JobFailed) else "NASA authentication unavailable"
+            job = _save(store, job, status="failed", error=message, retryable=True)
 
     print(json.dumps(job, indent=2))
     return 1 if job["status"] == "failed" else 0

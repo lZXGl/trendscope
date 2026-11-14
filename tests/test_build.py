@@ -43,14 +43,14 @@ def workspace(tmp_path: Path) -> dict[str, Path]:
 
 
 def _build(ws: dict[str, Path]) -> list[dict]:
-    return build(ws["processed"], ws["regions"], ws["out"], ws["variables"], ws["jobs"])
+    return build(ws["processed"], ws["regions"], ws["out"], ws["variables"], ws["jobs"], mock=True)
 
 
 def _write_job_result(jobs_dir: Path, job_id: str, with_status: bool = True) -> dict:
     """Mimic a finished on-demand job in a LocalJobStore folder."""
     result = json.loads(MOCK_JSON.read_text(encoding="utf-8"))
     result["metadata"].update(region=job_id, variable="T2M", lat=-12.5, lon=70.5591)
-    del result["metadata"]["is_mock"]
+    result["metadata"]["is_mock"] = True
     (jobs_dir / "results").mkdir(parents=True, exist_ok=True)
     (jobs_dir / "results" / f"{job_id}.json").write_text(json.dumps(result), encoding="utf-8")
     if with_status:
@@ -161,7 +161,7 @@ def test_only_skipped_regions_is_an_error(workspace):
         _build(workspace)
 
 
-def test_stub_results_are_flagged_as_mock(workspace):
+def test_explicit_stub_results_are_flagged_as_mock(workspace):
     (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
     _build(workspace)
     result = json.loads(
@@ -210,7 +210,7 @@ def test_no_csv_files_is_an_error(workspace):
 def test_schema_invalid_stats_output_fails_loudly(workspace, monkeypatch):
     (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
     bad = {"trend": {"method": "x"}, "verdict": {"headline": "h", "summary": "s", "caveats": []}}
-    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df: bad)
+    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df, **kwargs: bad)
     with pytest.raises(SchemaError, match="trend_result.schema.json"):
         _build(workspace)
     assert not (workspace["out"] / "index.json").exists()
@@ -230,7 +230,7 @@ def test_numpy_stats_output_is_converted_to_plain_json(workspace, monkeypatch):
         },
         "verdict": {"headline": "Warming", "summary": "s", "caveats": np.array(["c"])},
     }
-    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df: numpy_result)
+    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df, **kwargs: numpy_result)
     index = _build(workspace)
     assert index[0]["significant"] is True
     result_path = workspace["out"] / "results" / "cairo_t2m.json"
@@ -240,7 +240,7 @@ def test_numpy_stats_output_is_converted_to_plain_json(workspace, monkeypatch):
 def test_nan_in_stats_output_fails_loudly(workspace, monkeypatch):
     (workspace["processed"] / "cairo_t2m.csv").write_text(HEADER + GOOD_ROWS, encoding="utf-8")
     bad = {"trend": {"p_value": float("nan")}, "verdict": {}}
-    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df: bad)
+    monkeypatch.setattr("src.pipeline.analysis._analyse", lambda df, **kwargs: bad)
     with pytest.raises(ValueError, match="non-finite number at trend.p_value"):
         _build(workspace)
 
@@ -248,11 +248,16 @@ def test_nan_in_stats_output_fails_loudly(workspace, monkeypatch):
 def test_cli_returns_nonzero_on_bad_input(workspace, capsys):
     (workspace["processed"] / "bad.csv").write_text("date,value\n2020-01,1\n", encoding="utf-8")
     args = [
-        "--processed-dir", str(workspace["processed"]),
-        "--regions", str(workspace["regions"]),
-        "--variables", str(workspace["variables"]),
-        "--jobs-dir", str(workspace["jobs"]),
-        "--out-dir", str(workspace["out"]),
+        "--processed-dir",
+        str(workspace["processed"]),
+        "--regions",
+        str(workspace["regions"]),
+        "--variables",
+        str(workspace["variables"]),
+        "--jobs-dir",
+        str(workspace["jobs"]),
+        "--out-dir",
+        str(workspace["out"]),
     ]
     assert main(args) == 1
     assert "BUILD FAILED" in capsys.readouterr().err

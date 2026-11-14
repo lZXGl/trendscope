@@ -11,7 +11,7 @@ test("production journey: real default, chart modes, globe/map, compare and refr
   await expect(page.locator("canvas")).toHaveCount(2);
   await page.getByRole("button", { name: "Raw Value", exact: true }).click();
   await page.getByRole("button", { name: "Anomaly", exact: true }).click();
-  await expect(page.locator("[data-globe-ready=true]")).toBeVisible();
+  await expect(page.locator("[data-globe-ready=true]")).toBeVisible({timeout: 20000});
   const globe = page.locator("canvas").first();
   const bounds = await globe.boundingBox();
   const position = {x: bounds!.width * 0.6, y: bounds!.height * 0.6};

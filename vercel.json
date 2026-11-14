@@ -1,9 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "cd src/web && npm install && npm run build",
+  "buildCommand": "cd src/web && npm ci && npm run build && cd ../.. && node scripts/prepare-static-release.mjs src/web/dist/data",
   "outputDirectory": "src/web/dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api(?:/|$)|data(?:/|$)|assets(?:/|$)|.*\\.).*)",
+      "destination": "/index.html"
+    }
   ]
 }

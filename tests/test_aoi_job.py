@@ -9,6 +9,7 @@ import pytest
 from src.pipeline.aoi_job import JobFailed, create_or_reuse_job, main, run_job
 from src.pipeline.aoi_request import AoiRequest, InvalidRequest
 from src.pipeline.job_store import LocalJobStore
+from src.stats.stats import analyze_trend
 
 BBOX = (30.7, 30.7, 31.2, 31.2)
 MOCK_RESULT = json.loads(
@@ -43,23 +44,32 @@ class FakeNasa:
             meta["error"] = self.error
         if self.status == "ok":
             rows = "".join(
-                f"{year}-{month:02d},{aoi['region_id']},NDVI,0.5,0.0,NDVI,NASA MODIS\n"
-                for year in (2020, 2021)
-                for month in (1, 2)
+                f"{year}-{month:02d},{aoi['region_id']},NDVI,0.5,0.0,NDVI,"
+                "NASA MODIS MOD13A3.061,1,1.0\n"
+                for year in range(2001, 2025)
+                for month in range(1, 13)
             )
             (processed_dir / f"{aoi['region_id']}_ndvi.csv").write_text(
-                "date,region,variable,raw_value,anomaly,unit,source\n" + rows, encoding="utf-8"
+                "date,region,variable,raw_value,anomaly,unit,source,valid_pixel_count,valid_fraction\n"
+                + rows,
+                encoding="utf-8",
             )
         meta_path = processed_dir / f"{aoi['region_id']}_meta.json"
         meta_path.write_text(json.dumps(meta), encoding="utf-8")
         return meta_path
 
 
-def _run(store, job_id, tmp_path, nasa, stats=lambda df, *, lat, lon: MOCK_RESULT, **kwargs):
+def _run(store, job_id, tmp_path, nasa, stats=analyze_trend, **kwargs):
     kwargs.setdefault("land_check", lambda request: None)
     return run_job(
-        store, job_id, "token", tmp_path / "work",
-        submit=nasa.submit, fetch=nasa.fetch, stats=stats, **kwargs,
+        store,
+        job_id,
+        "token",
+        tmp_path / "work",
+        submit=nasa.submit,
+        fetch=nasa.fetch,
+        stats=stats,
+        **kwargs,
     )
 
 
@@ -90,8 +100,12 @@ def test_invalid_areas_are_rejected(bbox):
 
 @pytest.mark.parametrize(
     ("start", "end"),
-    [("2001-01-01", "12-31-2024"), ("1-1-2001", "12-31-2024"), ("02-30-2001", "12-31-2024"),
-     ("12-31-2024", "01-01-2001")],
+    [
+        ("2001-01-01", "12-31-2024"),
+        ("1-1-2001", "12-31-2024"),
+        ("02-30-2001", "12-31-2024"),
+        ("12-31-2024", "01-01-2001"),
+    ],
 )
 def test_invalid_dates_are_rejected(start, end):
     with pytest.raises(InvalidRequest):
@@ -99,8 +113,17 @@ def test_invalid_dates_are_rejected(start, end):
 
 
 def test_cli_create_uses_custom_dates(tmp_path, capsys):
-    args = ["--store-dir", str(tmp_path), "create", "--bbox", *map(str, BBOX),
-            "--start-date", "06-01-2023", "--end-date", "08-31-2023"]
+    args = [
+        "--store-dir",
+        str(tmp_path),
+        "create",
+        "--bbox",
+        *map(str, BBOX),
+        "--start-date",
+        "06-01-2023",
+        "--end-date",
+        "08-31-2023",
+    ]
     assert main(args) == 0
     job = json.loads(capsys.readouterr().out)
     assert job["request"]["start_date"] == "06-01-2023"
@@ -118,7 +141,7 @@ def test_job_runs_end_to_end_and_caches_the_result(store, tmp_path):
     assert done["status"] == "completed"
     assert done["nasa_task_id"] == "nasa-task-1"
     assert done["result_file"] == f"results/{job['job_id']}.json"
-    assert store.get_result(job["job_id"]) == MOCK_RESULT
+    assert store.get_result(job["job_id"])["metadata"]["is_mock"] is False
 
     # Cache hit: asking again returns the finished job and never calls NASA again.
     again = create_or_reuse_job(store, AoiRequest(bbox=BBOX))

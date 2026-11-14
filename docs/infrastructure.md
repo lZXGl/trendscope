@@ -1,26 +1,103 @@
-# Infrastructure & Deployment Configuration
+# Infrastructure and deployment contract
 
-## 1. Architecture
-- **Frontend & Lightweight API:** Hosted on **Vercel** (`src/web/`). Reads prebuilt static JSON (`src/web/public/data/`) and job/result stores without bundling heavy geospatial dependencies (`rasterio`, `pandas`).
-- **Asynchronous NASA Worker:** Executed via **GitHub Actions** (`.github/workflows/nasa-aoi-job.yml`) calling `src.pipeline.aoi_job`.
-- **Persistent Storage:** `LocalJobStore` (`data/jobs/jobs/<job_id>.json` and `data/jobs/results/<job_id>.json`) committed back to the repository (or backed by Vercel Blob when `BLOB_READ_WRITE_TOKEN` is configured). Temporary GitHub Actions artifacts are not used as permanent storage.
+## Verified release mode: precomputed NDVI
 
-## 2. Required Secrets & Environment Variables
+The repository configures a static Vite application on Vercel. Set the Vercel
+project **Root Directory to the repository root**, use the committed `vercel.json`,
+and leave its build command/output directory intact. Project dashboard settings,
+production domain and an actual Vercel deployment have not been verified here.
 
-### GitHub Repository Secrets (for `nasa-aoi-job.yml`)
-Configure under **Settings → Secrets and variables → Actions**:
-- `EARTHDATA_USER`: NASA Earthdata Login username
-- `EARTHDATA_PASS`: NASA Earthdata Login password
-- `APPEEARS_TOKEN` *(optional)*: Pre-issued AppEEARS bearer token (used instead of username/password if set)
+The build runs `npm ci`, builds the existing frontend, then runs
+`scripts/prepare-static-release.mjs` against **generated `src/web/dist/data`**.
+The gate checks every catalogue file exists, removes explicitly marked mock
+entries/assets from that generated output and publishes the verified Nile Delta
+NDVI entry. Its metadata, full calendar/observations and trend must match the
+saved real export in `data/processed/nile_delta_ndvi.result.json`; only numerical
+roundoff of up to eight floating-point epsilons is allowed for trend numbers.
+The verdict/headline must agree with the catalogue. New real release datasets
+require independent verification and an explicit update to this release gate.
+Neither source observations nor frontend components are rewritten.
 
-### Vercel Environment Variables *(when live job dispatch is enabled)*
-- `GITHUB_TOKEN`: Fine-grained PAT with `actions:write` on `lZXGl/trendscope` to trigger `workflow_dispatch`
-- `BLOB_READ_WRITE_TOKEN` *(optional)*: Vercel Blob token if storing results outside Git
+- `GET /data/index.json` lists the production precomputed result.
+- `GET /data/results/nile_delta_ndvi.json` returns the existing result schema,
+  `metadata.is_mock=false`, monthly NDVI and slope in `NDVI/decade`.
+- Missing `/data/*`, `/assets/*` and `/api/*` must return 404, never `index.html`
+  with HTTP 200. Vercel's SPA rewrite excludes those namespaces and file paths.
+- The delivered result retains the engine's caveats: ordinary MK inference is
+  provisional under dependence; significance is not causation and a
+  nonsignificant result is not evidence of ecological stability.
 
-> **Security rule:** Never commit credentials, `.env` files, or raw Earthdata tokens to source control, and never echo secrets in workflow logs.
+No HTTP job service, Vercel Function or Blob adapter exists on this release base.
+`POST /api/jobs`, `GET /api/jobs/<id>` and `GET /api/jobs/<id>/result` are therefore
+**unavailable**, not fake queued/completed jobs. The existing frontend recognizes
+404/405 on submission and keeps precomputed data available. It must not start
+polling when submission reports unavailable. Client-side mock fallback after a
+catalogue/network failure still needs the frontend owner's attention; this change
+cannot fix that without editing frontend components.
 
-## 3. Job Payload & Status Contract
-Defined in `schemas/job_status.schema.json` and `src/pipeline/aoi_request.py`:
-- **Fingerprint (`job_id`):** `aoi_<16-hex>` SHA-256 of `{bbox, product, start_date, end_date, allow_marginal, min_pixel_presence, processing_version}`.
-- **Cache-first behavior:** Repeated identical requests resolve to the same `job_id`. If `status == "completed"` and `results/<job_id>.json` exists, the workflow skips NASA execution and returns immediately.
-- **Timeouts & Failure Handling:** Workflow timeout is `45` minutes; `aoi_job.py` persists `nasa_task_id` before downloading so interrupted runs can resume, and records `retryable: false` for permanent errors (ocean/off-land AOI, insufficient pixel coverage).
+## Manual GitHub Actions worker
+
+`.github/workflows/nasa-aoi-job.yml` is manually dispatched. It is not an HTTP
+server or a public request queue.
+
+1. Pass bbox/date/resume inputs through environment variables, not interpolated
+   shell code. `aoi_job create` normalizes coordinates and fingerprints product,
+   geometry, dates, QA and processing version. A supplied ID must match.
+2. `aoi_job prepare` validates land support and records a NASA task ID without
+   downloading. Missing credentials produce a stored retryable failure.
+3. Upload the checkpoint artifact, then commit the status **before waiting on
+   NASA**. If publication fails, downloads do not start. Recover the checkpoint
+   artifact before another dispatch; never blindly resubmit after an ambiguous
+   NASA POST or a lost checkpoint.
+4. `aoi_job run` resumes that ID, invokes the existing fetch/preprocessing engine,
+   validates QA bookkeeping and calls the unchanged NDVI statistics engine.
+5. Validate result schema, explicit real-data flag, exact fingerprint/coordinates,
+   complete requested calendar and units before caching. Invalid, unsupported,
+   mocked or orphaned results cannot be published as completed real jobs.
+6. Upload status/result and processed CSV/manifest evidence, then commit the
+   final status/result. Raw rasters are not committed. Artifact retention is
+   **30 days**, not permanent scientific archiving.
+
+`data/jobs/jobs/<id>.json` and `data/jobs/results/<id>.json` are committed by the
+worker. `scripts.persist_job` stages only these paths, commits only those paths,
+and pulls/rebases unrelated remote changes before pushing. A real rebase conflict
+or denied push stops publication; recover the uploaded evidence manually.
+Workflow execution and remote writes were **not** exercised during this audit.
+
+One concurrency group per branch serializes workers even when identical boxes
+are formatted differently. GitHub's pending-run replacement behavior means this
+is not a durable multi-user queue. A hard runner termination can leave a
+`processing` checkpoint; stale jobs may be requeued after two hours, retaining
+that NASA ID. A submission with no confirmed ID is blocked pending reconciliation.
+
+### Credentials and permissions
+
+- Worker secrets: `APPEEARS_TOKEN`, or `EARTHDATA_USER` + `EARTHDATA_PASS`.
+  Secret-name inspection found `APPEEARS_TOKEN`; its value, expiry and NASA access
+  were not tested. No NASA calls, task submissions or polling ran in this audit.
+- The workflow requests `contents: write`. Branch protection/repository policy
+  must permit its checkpoint/final writes. Reading Actions permission policy
+  returned HTTP 403 for the current GitHub account, so this remains unverified.
+- No Vercel `GITHUB_TOKEN` or `BLOB_READ_WRITE_TOKEN` is used by the current static
+  deployment. Setting these variables alone does not create an API or storage.
+
+## Publication boundary and live release blockers
+
+Committing a result under `data/jobs` does **not** expose `/api/jobs` and does not
+place that result in the deployed `/data` catalogue. The Python build can publish
+validated completed jobs to a chosen output directory, but the current static
+release intentionally admits only the independently checked Nile Delta dataset.
+Publication of new real datasets needs a reviewed release build and deployment.
+A push using `GITHUB_TOKEN` does not trigger another Actions push workflow, so
+CI/publication must not be assumed to run recursively.
+
+`origin/feat/backend` at `f367fb2` has unmerged request-service/GitHub-store code.
+It was inspected, not merged or altered. A live release still needs an actual
+hosted adapter, a tested shared persistent store/dispatch path, concurrent-request
+idempotency, safe recovery after interrupted submission/publication, accessible
+HTTP result URLs, and verified repository/NASA permissions. No hosted end-to-end
+claim is made. Use the stable precomputed release until those dependencies pass.
+
+References: [Vercel rewrite configuration](https://vercel.com/docs/project-configuration/vercel-json#negative-lookahead),
+[GitHub concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency),
+[GITHUB_TOKEN trigger behavior](https://docs.github.com/en/actions/concepts/security/github_token).

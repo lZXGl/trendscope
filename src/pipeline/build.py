@@ -13,6 +13,7 @@ import math
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from src.pipeline import analysis
@@ -128,13 +129,41 @@ def _number_or_none(value: float) -> float | None:
     return float(value) if math.isfinite(value) else None
 
 
-def build_result(df: pd.DataFrame, regions: dict[str, dict]) -> dict:
+def validate_quality(df: pd.DataFrame) -> None:
+    """Validate production QA bookkeeping; do not introduce a new coverage cutoff."""
+    if not {"valid_pixel_count", "valid_fraction"}.issubset(df):
+        raise BuildError("NDVI requires valid_pixel_count and valid_fraction QA columns")
+    count = pd.to_numeric(df["valid_pixel_count"], errors="raise").to_numpy(float)
+    fraction = pd.to_numeric(df["valid_fraction"], errors="raise").to_numpy(float)
+    available = df.raw_value.notna().to_numpy()
+    if (
+        not np.isfinite(count).all()
+        or not np.isfinite(fraction).all()
+        or (count < 0).any()
+        or (count != np.floor(count)).any()
+        or ((fraction < 0) | (fraction > 1)).any()
+        or not np.array_equal(count > 0, fraction > 0)
+        or not np.array_equal(count > 0, available)
+    ):
+        raise BuildError("Invalid QA counts/fractions or missing-observation bookkeeping")
+    denominators = count[available] / fraction[available]
+    if len(denominators) and not np.allclose(
+        denominators, round(denominators[0]), atol=1e-8, rtol=0
+    ):
+        raise BuildError("QA counts/fractions must describe one fixed eligible mask")
+
+
+def build_result(df: pd.DataFrame, regions: dict[str, dict], *, mock: bool = False) -> dict:
     """Assemble one result object shaped exactly like schemas/trend_result.schema.json."""
     region = str(df["region"].iloc[0])
     if region not in regions:
         raise BuildError(f"region '{region}' is not in the regions config")
 
-    stats = analysis.analyse(df, lat=regions[region]["lat"], lon=regions[region]["lon"])
+    if not mock:
+        if df["variable"].iloc[0] != "NDVI":
+            raise BuildError("The validated engine supports NDVI only; unsupported variable")
+        validate_quality(df)
+    stats = analysis.analyse(df, lat=regions[region]["lat"], lon=regions[region]["lon"], mock=mock)
     metadata: dict = {
         "region": region,
         "lat": regions[region]["lat"],
@@ -188,7 +217,9 @@ def index_entry(
     return entry
 
 
-def load_job_results(jobs_dir: Path) -> list[tuple[str, dict, list[float] | None]]:
+def load_job_results(
+    jobs_dir: Path, *, mock: bool = False
+) -> list[tuple[str, dict, list[float] | None]]:
     """Finished on-demand jobs: (job_id, result, bbox) for each <jobs_dir>/results/<job_id>.json.
 
     The result was already produced by the real statistics and validated when it was cached,
@@ -204,6 +235,14 @@ def load_job_results(jobs_dir: Path) -> list[tuple[str, dict, list[float] | None
         except json.JSONDecodeError as exc:
             raise BuildError(f"job {job_id}: unreadable JSON ({exc})") from exc
         validate_payload(result, RESULT_SCHEMA_PATH, f"job result {result_path.name}")
+        if not mock:
+            from src.pipeline.aoi_job import validate_cached_result
+
+            if job.get("status") != "completed":
+                raise BuildError(
+                    f"job {job_id}: no completed status; refusing orphan/failed result"
+                )
+            validate_cached_result(job, result)
         bbox = job.get("request", {}).get("bbox")
         found.append((job_id, result, [float(value) for value in bbox] if bbox else None))
     return found
@@ -221,6 +260,8 @@ def build(
     out_dir: Path = OUT_DIR,
     variables_path: Path = VARIABLES_PATH,
     jobs_dir: Path = JOBS_DIR,
+    input_csv: Path | None = None,
+    mock: bool = False,
 ) -> list[dict]:
     """Build and validate everything in memory, then write. Returns the index entries.
 
@@ -231,12 +272,18 @@ def build(
     Nothing is written unless every input is valid, so a failed build never leaves
     half-updated output behind.
     """
+    if not isinstance(mock, bool):
+        raise BuildError("mock must be boolean")
+    if mock and out_dir.resolve() == OUT_DIR.resolve():
+        raise BuildError("Mock builds require a separate --out-dir; production output is protected")
+    if input_csv is not None:
+        processed_dir = input_csv.parent
     regions = load_catalogue(regions_path, {"name", "lat", "lon"})
     variables = load_catalogue(variables_path, {"name", "description"})
     random_regions, skipped = load_random_regions(processed_dir)
     regions = {**random_regions, **regions}  # a curated region wins over a random one
-    csv_paths = sorted(processed_dir.glob("*.csv"))
-    job_results = load_job_results(jobs_dir)
+    csv_paths = [input_csv] if input_csv is not None else sorted(processed_dir.glob("*.csv"))
+    job_results = load_job_results(jobs_dir, mock=mock)
     if not csv_paths and not job_results:
         raise BuildError(f"No processed CSV files found in {processed_dir}")
 
@@ -248,9 +295,11 @@ def build(
             print(f"SKIPPED: {csv_path.name} ({skipped[skipped_region]})", file=sys.stderr)
             continue
         df = read_processed_csv(csv_path)
+        if df["variable"].iloc[0] not in variables:
+            raise BuildError(f"{csv_path.name}: variable is not in the variables config")
         try:
-            result = build_result(df, regions)
-        except BuildError as exc:
+            result = build_result(df, regions, mock=mock)
+        except ValueError as exc:
             raise BuildError(f"{csv_path.name}: {exc}") from exc
         meta = result["metadata"]
         if meta["variable"] not in variables:
@@ -276,9 +325,7 @@ def build(
             area["bbox"] = bbox
         name = f"{job_id}.json"
         results[name] = result
-        index.append(
-            index_entry(result, {meta["region"]: area}, variables, f"results/{name}")
-        )
+        index.append(index_entry(result, {meta["region"]: area}, variables, f"results/{name}"))
 
     if not results:
         raise BuildError(f"Every processed CSV in {processed_dir} was skipped")
@@ -309,11 +356,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--variables", type=Path, default=VARIABLES_PATH)
     parser.add_argument("--out-dir", type=Path, default=OUT_DIR)
     parser.add_argument("--jobs-dir", type=Path, default=JOBS_DIR)
+    parser.add_argument("--input", type=Path, help="Build only this selected measured CSV")
+    parser.add_argument(
+        "--mock", action="store_true", help="Explicit development placeholders only"
+    )
     args = parser.parse_args(argv)
 
     try:
         index = build(
-            args.processed_dir, args.regions, args.out_dir, args.variables, args.jobs_dir
+            args.processed_dir,
+            args.regions,
+            args.out_dir,
+            args.variables,
+            args.jobs_dir,
+            args.input,
+            args.mock,
         )
     except ValueError as exc:  # BuildError and SchemaError
         print(f"BUILD FAILED: {exc}", file=sys.stderr)
@@ -322,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
     for entry in index:
         print(f"OK: {args.out_dir / entry['file']}")
     print(f"OK: {args.out_dir / 'index.json'} ({len(index)} results)")
-    if analysis.IS_MOCK:
+    if args.mock:
         print("WARNING: statistics are MOCK placeholders (src/pipeline/stats_stub.py).")
     return 0
 

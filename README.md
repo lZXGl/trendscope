@@ -2,10 +2,12 @@
 
 NASA Space Apps Challenge monorepo investigating long-term vegetation changes (`MOD13A3.061` Monthly NDVI, 1 km) in Egypt's Nile Delta.
 
-Public demo: [TrendScope observed-data explorer](https://trendscope-observed-demo.tancart.chatgpt.site).
+Public demo: [TrendScope observed-data explorer](https://turbo-ivory-fyow25n-zezobebo100100-5712.vercel.app) ([mirror](https://trendscope-observed-demo.tancart.chatgpt.site)).
 The demo shows the reviewed Nile Delta baseline with its scientific limitations;
 live arbitrary-AOI processing remains disabled pending hosted-service verification.
 Release verification and deployment details: [final release report](reports/final_release.md).
+
+![TrendScope Demo](docs/trendscope-demo.gif)
 
 ## Team Workflow (No Direct Pushes to `main`)
 1. Clone and sync Python environment:

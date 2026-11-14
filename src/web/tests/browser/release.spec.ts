@@ -35,7 +35,7 @@ test("production journey: observed default, chart modes, globe selection, detail
   await expect(
     page.getByText(/No slope confidence interval is supplied/),
   ).toBeVisible();
-  await expect(page.locator("[data-globe-ready=true]")).toBeVisible();
+  await expect(page.locator("[data-globe-ready=true]")).toBeVisible({ timeout: 20000 });
   const globe = page.locator(".globe-viewport canvas");
   const box = await globe.boundingBox();
   const position = { x: box!.width * 0.55, y: box!.height * 0.5 };

@@ -21,7 +21,7 @@ NASA Space Apps Challenge monorepo investigating long-term vegetation changes (`
 
 ## Shared Contracts
 1. **Data Eng → Statistics Lead (`data/processed/ndvi_monthly.csv`):**
-   - Columns: `date,ndvi,valid_pixel_count,valid_fraction`
+   - Columns: `date,region,variable,raw_value,anomaly,unit,source,valid_pixel_count,valid_fraction`
    - Details & QA rules: [`data/README.md`](data/README.md)
 2. **Statistics Lead → Web Developer (`schemas/trend_result.schema.json`):**
    - Validated mock file for immediate UI work: [`data/mock/results.mock.json`](data/mock/results.mock.json)
@@ -39,7 +39,7 @@ uv run python -m src.data.fetch modis-process
 
 ## Build results for the frontend
 ```bash
-uv run python -m src.pipeline.build
+uv run python -m src.pipeline.build --input data/processed/nile_delta_ndvi.csv --out-dir /tmp/trendscope-real-data
 ```
 Reads every `data/processed/<region>_<variable>.csv` plus [`config/regions.json`](config/regions.json)
 (display name, lat, lon per region slug) and [`config/variables.json`](config/variables.json)
@@ -48,13 +48,17 @@ Reads every `data/processed/<region>_<variable>.csv` plus [`config/regions.json`
 - `index.json` — the list of available results, validated against [`schemas/index.schema.json`](schemas/index.schema.json)
 
 The build fails without writing anything if a CSV is malformed, a region or variable is missing
-from its config file, or any output breaks its schema. The output folder is generated (git-ignored).
+from its config file, or any output breaks its schema. The default public JSON is tracked; use a separate output directory when validating a build.
+Real-analysis failures are errors. Non-NDVI data and short demos are not silently given
+placeholder statistics. Development placeholders require `--mock --out-dir <separate-dir>`.
 
 **Pre-made random regions.** There is no server, so the "Random Region" button picks from regions
 analysed ahead of time. Each `data/processed/<region_id>_meta.json` written by `fetch.run_modis_aoi`
 with `"status": "ok"` is added automatically (no `config/regions.json` entry needed) and appears in
 `index.json` with `"is_random": true` and its `bbox`. Any other status is skipped with a
 `SKIPPED:` line, so one failed NASA download does not break the build.
+The real engine still requires an analysable multi-year NDVI record; `status: ok`
+alone does not make a short retrieval demo or a non-NDVI variable statistically supported.
 
 ## On-demand analysis of a user-selected area (glue only, no hosting yet)
 ```bash
@@ -74,8 +78,12 @@ uv run python -m src.pipeline.aoi_job run --job-id aoi_<id>
   `src/web/public/data/results/<job_id>.json` (the job's `result_file`) and lists it in
   `index.json` as "Custom area (…)".
 - Files go to `data/jobs/` (git-ignored). Areas must be 0.1–2.0 degrees wide and fully on land.
-- `run` needs `src/stats/stats.py`, which is still on `feat/stats`.
+- The real NDVI engine is already integrated. `src.pipeline.analysis` never substitutes mock
+  statistics after an error. Mocks are explicit development builds only.
+- Missing NASA credentials persist a failed status; completed verified caches need no credentials.
+- The manual Actions worker checkpoints its NASA task before downloading and preserves failures.
+  No `/api/jobs` HTTP service is deployed by this code. Committed job files do not create one.
 
-Until `src/stats/stats.py` lands, the trend and verdict come from `src/pipeline/stats_stub.py`:
-results carry `metadata.is_mock = true` and "(MOCK)" in the headline. Switch to the real module
-in `src/pipeline/analysis.py` (one import, one flag).
+The Vercel build serves a verified precomputed Nile Delta NDVI catalogue and reports live
+processing unavailable. See [the current deployment contract](docs/infrastructure.md) and
+[the backend release audit](reports/backend_integration_release.md) for limitations and checks.

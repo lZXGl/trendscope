@@ -4,97 +4,110 @@ on:
   workflow_dispatch:
     inputs:
       bbox:
-        description: "Bounding box as min_lon,min_lat,max_lon,max_lat (e.g. 30.7,30.7,31.2,31.2)"
+        description: "min_lon,min_lat,max_lon,max_lat"
         required: true
         type: string
       start_date:
         description: "Start date (MM-DD-YYYY)"
-        required: false
         default: "01-01-2001"
         type: string
       end_date:
         description: "End date (MM-DD-YYYY)"
-        required: false
         default: "12-31-2024"
         type: string
       job_id:
-        description: "Optional existing job_id to resume (aoi_<16hex>)"
-        required: false
+        description: "Optional resume ID; must match bbox and dates"
         default: ""
         type: string
 
 permissions:
   contents: write
 
+# One writer per branch, including normalized duplicates and different date windows.
+# This is a manual worker, not a durable public job queue (see docs/infrastructure.md).
 concurrency:
-  group: nasa-aoi-${{ inputs.bbox }}-${{ inputs.job_id }}
+  group: nasa-aoi-worker-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   process-aoi:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install Python dependencies
-        run: uv sync --frozen
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --frozen
 
       - name: Validate inputs and create or reuse job
         id: create_job
+        env:
+          BBOX_INPUT: ${{ inputs.bbox }}
+          START_DATE: ${{ inputs.start_date }}
+          END_DATE: ${{ inputs.end_date }}
+          REQUESTED_JOB_ID: ${{ inputs.job_id }}
         shell: bash
         run: |
           set -euo pipefail
-          BBOX_CLEAN=$(echo "${{ inputs.bbox }}" | tr ',' ' ')
-          read -r MIN_LON MIN_LAT MAX_LON MAX_LAT <<< "$BBOX_CLEAN"
-
+          read -r MIN_LON MIN_LAT MAX_LON MAX_LAT <<< "${BBOX_INPUT//,/ }"
+          CREATE_CODE=0
           JOB_JSON=$(uv run python -m src.pipeline.aoi_job --store-dir data/jobs create \
             --bbox "$MIN_LON" "$MIN_LAT" "$MAX_LON" "$MAX_LAT" \
-            --start-date "${{ inputs.start_date }}" \
-            --end-date "${{ inputs.end_date }}")
-
-          JOB_ID=$(python3 -c 'import sys,json; print(json.loads(sys.stdin.read())["job_id"])' <<< "$JOB_JSON")
-          STATUS=$(python3 -c 'import sys,json; print(json.loads(sys.stdin.read())["status"])' <<< "$JOB_JSON")
+            --start-date "$START_DATE" --end-date "$END_DATE" --job-id "$REQUESTED_JOB_ID") || CREATE_CODE=$?
+          JOB_ID=$(python3 -c 'import sys,json; print(json.load(sys.stdin)["job_id"])' <<< "$JOB_JSON")
+          STATUS=$(python3 -c 'import sys,json; print(json.load(sys.stdin)["status"])' <<< "$JOB_JSON")
           echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
           echo "initial_status=$STATUS" >> "$GITHUB_OUTPUT"
-          echo "Job $JOB_ID initial status: $STATUS"
+          exit "$CREATE_CODE"
 
-      - name: Execute NASA AOI job (if not cached/completed)
-        if: steps.create_job.outputs.initial_status != 'completed'
-        shell: bash
+      - name: Prepare NASA task checkpoint (no downloads)
+        if: steps.create_job.outputs.initial_status != 'completed' && steps.create_job.outputs.initial_status != 'failed'
         env:
           APPEEARS_TOKEN: ${{ secrets.APPEEARS_TOKEN }}
           EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
           EARTHDATA_PASS: ${{ secrets.EARTHDATA_PASS }}
-        run: |
-          set -euo pipefail
-          if [ -z "${APPEEARS_TOKEN:-}" ] && { [ -z "${EARTHDATA_USER:-}" ] || [ -z "${EARTHDATA_PASS:-}" ]; }; then
-            echo "Error: Configure APPEEARS_TOKEN or EARTHDATA_USER + EARTHDATA_PASS in repository secrets." >&2
-            exit 1
-          fi
-          uv run python -m src.pipeline.aoi_job --store-dir data/jobs run \
-            --job-id "${{ steps.create_job.outputs.job_id }}"
+          JOB_ID: ${{ steps.create_job.outputs.job_id }}
+        run: uv run python -m src.pipeline.aoi_job --store-dir data/jobs prepare --job-id "$JOB_ID"
 
-      - name: Persist job status and result JSON
+      - name: Preserve checkpoint artifact
         if: always() && steps.create_job.outputs.job_id != ''
-        shell: bash
-        run: |
-          set -euo pipefail
-          JOB_ID="${{ steps.create_job.outputs.job_id }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f "data/jobs/jobs/${JOB_ID}.json" || true
-          if [ -f "data/jobs/results/${JOB_ID}.json" ]; then
-            git add -f "data/jobs/results/${JOB_ID}.json"
-          fi
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(jobs): persist AOI job ${JOB_ID} status/result"
-            git push
-          else
-            echo "No job changes to persist."
-          fi
+        uses: actions/upload-artifact@v4
+        with:
+          name: nasa-checkpoint-${{ steps.create_job.outputs.job_id }}-${{ github.run_attempt }}
+          path: data/jobs/jobs/${{ steps.create_job.outputs.job_id }}.json
+          retention-days: 30
+
+      - name: Persist checkpoint before waiting on NASA
+        if: always() && steps.create_job.outputs.job_id != ''
+        env:
+          JOB_ID: ${{ steps.create_job.outputs.job_id }}
+        run: uv run python -m scripts.persist_job --job-id "$JOB_ID" --branch "$GITHUB_REF_NAME"
+
+      - name: Execute prepared job
+        if: success() && steps.create_job.outputs.initial_status != 'completed' && steps.create_job.outputs.initial_status != 'failed'
+        env:
+          APPEEARS_TOKEN: ${{ secrets.APPEEARS_TOKEN }}
+          EARTHDATA_USER: ${{ secrets.EARTHDATA_USER }}
+          EARTHDATA_PASS: ${{ secrets.EARTHDATA_PASS }}
+          JOB_ID: ${{ steps.create_job.outputs.job_id }}
+        run: uv run python -m src.pipeline.aoi_job --store-dir data/jobs run --job-id "$JOB_ID" --work-dir "$RUNNER_TEMP/trendscope-aoi"
+
+      - name: Preserve processing evidence before publishing status
+        if: always() && steps.create_job.outputs.job_id != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: nasa-evidence-${{ steps.create_job.outputs.job_id }}-${{ github.run_attempt }}
+          path: |
+            data/jobs/jobs/${{ steps.create_job.outputs.job_id }}.json
+            data/jobs/results/${{ steps.create_job.outputs.job_id }}.json
+            ${{ runner.temp }}/trendscope-aoi/processed/
+          retention-days: 30
+
+      - name: Persist final status and result
+        if: always() && steps.create_job.outputs.job_id != ''
+        env:
+          JOB_ID: ${{ steps.create_job.outputs.job_id }}
+        run: uv run python -m scripts.persist_job --job-id "$JOB_ID" --branch "$GITHUB_REF_NAME"

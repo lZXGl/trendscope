@@ -75,8 +75,16 @@ class AoiRequest:
         object.__setattr__(self, "bbox", normalise_bbox(self.bbox))
         if self.product != PRODUCT:
             raise InvalidRequest(f"unsupported product '{self.product}'; only {PRODUCT}")
-        if not (0 < self.min_pixel_presence <= 1):
+        if (
+            isinstance(self.min_pixel_presence, bool)
+            or not isinstance(self.min_pixel_presence, (int, float))
+            or not (0 < self.min_pixel_presence <= 1)
+        ):
             raise InvalidRequest("min_pixel_presence must be in (0, 1]")
+        if not isinstance(self.allow_marginal, bool):
+            raise InvalidRequest("allow_marginal must be boolean")
+        if not isinstance(self.processing_version, str) or not self.processing_version.strip():
+            raise InvalidRequest("processing_version must be a non-empty string")
         if _parse_date(self.start_date, "start_date") >= _parse_date(self.end_date, "end_date"):
             raise InvalidRequest("start_date must be before end_date")
 

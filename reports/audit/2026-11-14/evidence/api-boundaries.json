@@ -1,0 +1,36 @@
+{
+  "mismatched_fetch_manifest": {
+    "state": "failed",
+    "error": "Statistics module is not available (src/stats/stats.py): No module named 'src.stats'",
+    "result_region": null
+  },
+  "expired_retry": {
+    "attempts": [
+      {
+        "status": "failed",
+        "retryable": true,
+        "nasa_task_id": "offline-task"
+      },
+      {
+        "status": "failed",
+        "retryable": true,
+        "nasa_task_id": "offline-task"
+      }
+    ],
+    "fake_submit_total_including_first_probe": 2
+  },
+  "api_orphan_result": [
+    200,
+    {
+      "synthetic_test_only": true
+    }
+  ],
+  "http_OPTIONS": {
+    "status": 501,
+    "allow_origin": null
+  },
+  "http_POST": {
+    "status": 202,
+    "allow_origin": null
+  }
+}

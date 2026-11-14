@@ -1,0 +1,151 @@
+{
+  "snapshot": "/home/mostafa/trendscope-audit/2026-11-14/snapshots/backend-stabilization",
+  "baseline": {
+    "n": 288,
+    "S": -14110,
+    "variance": 2667952.0,
+    "tau_a": -0.34141502129307005,
+    "p": 5.7265111160568015e-18,
+    "slope": -0.02130941563386611,
+    "engine": {
+      "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
+      "sens_slope": -0.021309415633866107,
+      "slope_unit": "NDVI/decade",
+      "p_value": 5.7265111160568015e-18,
+      "tau": -0.34141502129307005,
+      "significant": true,
+      "autocorrected": false
+    },
+    "max_anomaly_error": 0.0,
+    "coverage_min": 0.13731412639405205,
+    "coverage_median": 0.9883828996282528,
+    "below_80": 43
+  },
+  "input_cases": {
+    "zero": {
+      "accepted": false,
+      "error": "ValueError: Insufficient data: no monthly observations."
+    },
+    "one": {
+      "accepted": false,
+      "error": "ValueError: Insufficient data: need at least two finite NDVI values and a repeated calendar month to estimate anomalies across years."
+    },
+    "single_year": {
+      "accepted": false,
+      "error": "ValueError: Insufficient data: need at least two finite NDVI values and a repeated calendar month to estimate anomalies across years."
+    },
+    "two_januaries": {
+      "accepted": true,
+      "n": 2,
+      "trend": {
+        "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
+        "sens_slope": 0.05200875019663376,
+        "slope_unit": "NDVI/decade",
+        "p_value": 1.0,
+        "tau": 1.0,
+        "significant": false,
+        "autocorrected": false
+      }
+    },
+    "duplicate_dates": {
+      "accepted": false,
+      "error": "ValueError: Duplicate monthly dates are not allowed."
+    },
+    "wrong_units": {
+      "accepted": false,
+      "error": "ValueError: Expected variable='NDVI' and unit='NDVI' (already scaled)."
+    },
+    "out_of_range": {
+      "accepted": false,
+      "error": "ValueError: Scaled MOD13A3 NDVI must be finite and in [-0.2, 1.0], or missing."
+    },
+    "constant": {
+      "accepted": true,
+      "n": 288,
+      "trend": {
+        "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
+        "sens_slope": -0.0,
+        "slope_unit": "NDVI/decade",
+        "p_value": 1.0,
+        "tau": 0.0,
+        "significant": false,
+        "autocorrected": false
+      }
+    },
+    "gapped": {
+      "accepted": true,
+      "n": 284,
+      "trend": {
+        "method": "Ordinary Mann-Kendall on monthly anomalies + Sen's slope",
+        "sens_slope": -0.021377636375997676,
+        "slope_unit": "NDVI/decade",
+        "p_value": 2.146139957930959e-17,
+        "tau": -0.33777932613347933,
+        "significant": true,
+        "autocorrected": false
+      }
+    },
+    "all_missing": {
+      "accepted": false,
+      "error": "ValueError: Insufficient data: need at least two finite NDVI values and a repeated calendar month to estimate anomalies across years."
+    }
+  },
+  "requests": {
+    "reversed": {
+      "error": "bbox longitudes must satisfy -180 <= min_lon < max_lon <= 180"
+    },
+    "nan": {
+      "error": "bbox longitudes must satisfy -180 <= min_lon < max_lon <= 180"
+    },
+    "antimeridian": {
+      "error": "bbox longitudes must satisfy -180 <= min_lon < max_lon <= 180"
+    },
+    "too_large": {
+      "error": "bbox width is 3.0000 degrees; allowed 0.1 to 2.0"
+    },
+    "high_lat": {
+      "id": "aoi_b313f283f51b19b3"
+    },
+    "numeric_strings": {
+      "id": "aoi_e15b2cd442c80157"
+    },
+    "distinct_a": {
+      "id": "aoi_e15b2cd442c80157"
+    },
+    "distinct_b": {
+      "id": "aoi_b3e36822009f5b74"
+    }
+  },
+  "wrong_aoi_cache": {
+    "returned_status": "failed"
+  },
+  "orphan_publication": {
+    "error": "job aoi_e15b2cd442c80157: no completed status; refusing orphan/failed result"
+  },
+  "corrupt_cache": {
+    "error": "JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+    "persisted_status": "completed"
+  },
+  "duplicate_workers": {
+    "fake_nasa_submit_count": 2,
+    "final_states": [
+      "failed",
+      "failed"
+    ]
+  },
+  "atomic_write_race": [
+    "ok",
+    "FileNotFoundError"
+  ],
+  "eligibility_missing_calendar": {
+    "requested_months": 24,
+    "finite_months": 1,
+    "eligible_pixels_implicitly_at_80pct": 1
+  },
+  "partial_glob": "FileNotFoundError: Missing matching pixel_reliability GeoTIFF for 2001-02",
+  "corrupt_raster_cache": {
+    "network_calls_to_fakes": 2,
+    "files": 1,
+    "retained_bytes": "corrupt"
+  }
+}

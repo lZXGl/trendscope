@@ -1,0 +1,57 @@
+{
+  "frontend": {
+    "base_commit": "0f0c14179dc6cf48555fcceb9171ecd860b38d5d",
+    "captured_at": "2026-11-14T02:13:35.687465+00:00",
+    "files": {
+      "src/web/README.md": "2ef21efc0750ec5e30643add44bd6cc15d933475ce4ae1c002e70fba1e91dab4",
+      "src/web/docs/backend-integration.md": "c5ccae6e27111a04bc60c4491ac518a48b1ff3d3fa9ed95e41d3674f8187190a",
+      "src/web/docs/geographic-ux-handoff.md": "37780f5cbac9693054e430fd089a611e6685896d0bafac8a05420d2edc33fdcb",
+      "src/web/package-lock.json": "3d262d1e3db9b1cafd338994b4a2fa26ef68caeea27ac95c56f75dfaf1cd2459",
+      "src/web/package.json": "85f5af095c0b8bc8e32b4a9de12b76bc5dc2dc45daf97920ef349705ea61d5c5",
+      "src/web/src/App.tsx": "48c580112439539c4ee75c0369e80669ef545617b9efe5132708341d7df84448",
+      "src/web/src/components/AoiControls.tsx": "319ad1142ff4302780fc534af92108a117105a3ef5368f5d816fce22eabf6835",
+      "src/web/src/components/GlobePanel.tsx": "901cff0b746908ac024b138ed95a085d65effe9929b290d729efbc1028bfc6d6",
+      "src/web/src/components/TrendChart.tsx": "decd15d9f23b422b71d86f4f1c527dd1247d8e59e8b43aecd340dc503b9cb8a3",
+      "src/web/src/components/VerdictCard.tsx": "b5fff646d1c06a9014ce510a01491e49f4bbede399c54f7fb29ad62e99d826bd",
+      "src/web/src/components/WorldMap.tsx": "fa7b4b3517590eca6245260221eeeb50df000f39f1d2780e6827f335fc6bba37",
+      "src/web/src/data/world-land.json": "9e0729ee253ca7d7a5c4ae9395fb1902264c5377c52e224d13dd85010e2835d9",
+      "src/web/src/data/world-land.provenance.json": "2bb5769bfd03a1486d2a9a2226d6829d25e11d15c88aeb98e1088e79ad01042d",
+      "src/web/src/lib/aoi.ts": "f8886d2c12d41aa658079650be4bd15189bfd0d079bb14c003ade104ddb918e4",
+      "src/web/src/lib/appearance.tsx": "1a0e418d07b3fb3793b5c105c61bc079098b832202532547499f867f7381a0ad",
+      "src/web/src/main.tsx": "a7e641c3543e2471a61877d07b836c950f776a8d8c5608d5b2e9ee47ca3244cb",
+      "src/web/tests/aoi.test.ts": "ebabf5b5844d3729465b8a1d213e113705e3a4ca0669341cd40d2285aae5d6ba",
+      "src/web/tests/browser/appearance.spec.ts": "1c5cf5c2d2d4538d5b04205a7dee78c3bea698e0248de6937398e8263d8cfe7b",
+      "src/web/tests/browser/helpers.ts": "d6b6eaa3c7c0b197ce2c202e7755151178786e42b629e0ae3e3e31991b2f3c7e",
+      "src/web/tests/browser/jobs.spec.ts": "66cc06430857b967e496a79a1f08d96eef0dc30197d10895cd15c3d4bb65496c",
+      "src/web/tests/browser/release.spec.ts": "6803a2ce005b328875f299d8312fddf85fd911fbb34d8c86ecce594fd58f3197",
+      "vercel.json": "9c5a9ae4358f8a7ec36693fcb02c7ba366038d29af877855d6d6e5e995ec1464"
+    },
+    "note": "Non-atomic changing-WIP observation, not a reproducible committed release."
+  },
+  "backend": {
+    "base_commit": "56b8ef27d0f7b5bfb81bde04e145d9c4f584959b",
+    "captured_at": "2026-11-14T02:13:55.286663+00:00",
+    "files": {
+      "deploy/backend/gunicorn.conf.py": "25d011f57e81eb892ee0e370ff601ec7be56c3b91c7c89b230b6b2ebb83ecd3e",
+      "config/cached_observations.json": "7f54482b7dee76720e2721b25ffe51b0a65577cd31cdddbae44b68356e67389c",
+      "src/pipeline/job_store.py": "0d9101c140073137c5ca11ac8cdddc6f5281ded648e8bd37d6f03fc975f06ba6",
+      "src/pipeline/job_api.py": "d2d8ae32746bd9c38019f2d9e5be3a05db7cad83537b65783791caf70799798f",
+      "reports/arbitrary_aoi_api_release.md": "01dcba9114b85ad7dcd83ee7b26c01377aaa911e5a165c8af21174ded4f1e8e7",
+      ".github/workflows/ci.yml": "62218df792c4e86cb54748f2117cb4c34e95a86c0c8a97423443118019cc9f08",
+      "docs/backend_deployment.md": "ca065fe2aec8d01e3649675d3012e057d249b5cd4edfc1307beb9a0234726633",
+      "uv.lock": "eff34943dac7d1aa6fdbd4c10c75e4156aa888ebc716de9e08c5567c2bea043f",
+      "README.md": "69d297d3f7400daa79f4eddd76cc9b5b4c19f65e21bf3b550de4af2decf6cb2a",
+      "tests/test_job_api.py": "69dfc1ff79f465bc2b4c4a9c366e2e8089331ff9ceb2beb1db0ee2875f6de1f7",
+      "src/pipeline/job_worker.py": "7797649d8aaea28b66e60af8b8058c02e3e257484a780565ef6310f7d3fc0151",
+      "docs/infrastructure.md": "595991902f6a0e39ac98def9a2c48aa09e2e302ed78bcec00d3a6e7181ffbe38",
+      "tests/test_job_http.py": "9a1d03becf1c696f098d3c31c7cd28020138ec406b807893ef47995abe71607e",
+      "src/pipeline/aoi_job.py": "1911ba6cdcade3ca98aa0da8f452e6bd59675f5889de55bffd7c36dd9ba1214b",
+      "scripts/smoke_job_api.py": "6c405a345998c8c3d8d77196a3e576d1d7f43bb7da9196da0afffdec898075b7",
+      "pyproject.toml": "fbd3b07ca99ed9001424a391569d9132943e6ef9173366e908f4d44aab6d34f3",
+      "tests/test_aoi_job.py": "54fdd42690ca0c002b2c92e3c67f8a4a3544807beef24f2752f2e2bece96bbd4",
+      "docs/live_api_contract.md": "2aef1d24759460863213f6765bb853c9ad4db7c24c90175f8a53ba4582639f73",
+      "src/pipeline/job_runtime.py": "9308a176e2c47fdfe99bffbb09a1bdae089536d64f44bf60eea00cd2a9dbb538"
+    },
+    "note": "Non-atomic changing-WIP observation, not a reproducible committed release."
+  }
+}

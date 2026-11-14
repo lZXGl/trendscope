@@ -1,0 +1,439 @@
+[
+  {
+    "id": "A01",
+    "priority": "P0",
+    "title": "Advertised live AOI workflow has no committed hosted API",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/web/src/lib/jobClient.ts:59; vercel.json:4; docs/infrastructure.md:4",
+    "evidence": "Frontend POSTs /api/jobs. Neither main nor backend-latest contains a deployable /api handler or server entry in its Vercel configuration. The separate request-service branch has real HTTP business logic and a stdlib server, but is unmerged and its docs require a hosting adapter. Active backend WIP contains that service; it is not a deployed boundary.",
+    "expected_vs_actual": "A submitted AOI should reach a durable service and return a retrievable job. Current committed production configuration builds static assets only.",
+    "impact": "Judges cannot complete the advertised arbitrary-area NASA workflow. This does not prevent a deliberately scoped precomputed demonstration.",
+    "minimum_action": "Keep live controls disabled until the real service, persistence, dispatch and result endpoint are deployed together and tested. A static-only submission must state that scope explicitly.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 actively implementing; not resolved by WIP.",
+    "verification": "Anonymous browser against the exact release URL submits an offline fixture job through real HTTP, polls durable state, retrieves the correctly bound result, and survives refresh; then authorize a separate real NASA acceptance test.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A02",
+    "priority": "P0",
+    "title": "Completed job accepts another AOI and date window",
+    "scope": [
+      "frontend-stabilization"
+    ],
+    "reference": "src/web/src/lib/contracts.ts:27; src/web/src/lib/jobClient.ts:110; src/web/src/App.tsx:183; src/web/tests/browser/jobs.spec.ts:15",
+    "evidence": "Audit browser test 1 returns a schema-valid Nile Delta 2001\u20132024 result for a different random AOI requested from 2002-02. UI shows COMPLETED, displays Nile Delta, and suppresses the candidate mismatch warning. Existing project browser fixture also uses the unrelated baseline as a completed custom result. evidence/frontend-adversarial-browser.txt; audit.spec.ts:5.",
+    "expected_vs_actual": "A completed result must match request fingerprint, product, bbox/centre and complete requested calendar. Current validation checks schema and self-consistent calendar only.",
+    "impact": "Wrong geography can be presented as a successful new analysis. Static mode disables this path, so this is a live-enablement blocker.",
+    "minimum_action": "Validate result against the submitted request and returned job identity before any success state; preserve displayed-result identity independently of candidate selection.",
+    "owner": "FRONTEND",
+    "other_agent": "Agent 1 working on AOI UX; issue reproduced on its latest committed base, not declared fixed.",
+    "verification": "Return a valid result for another AOI or window and require a visible integrity error with no completed-result association.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A03",
+    "priority": "P0",
+    "title": "Late catalogue response overwrites a completed custom result",
+    "scope": [
+      "frontend-stabilization"
+    ],
+    "reference": "src/web/src/App.tsx:63; src/web/src/App.tsx:148; src/web/src/App.tsx:185; src/web/src/App.tsx:439",
+    "evidence": "Audit browser test 2 holds the initial static baseline fetch, completes a custom job with a custom-labelled result, then releases the baseline. The baseline replaces activeResult while the custom job still says COMPLETED. No malformed server response is needed. audit.spec.ts:21; evidence/frontend-adversarial-browser.txt.",
+    "expected_vs_actual": "Only the current display intent should own activeResult. Catalogue cancellation depends on selectedFile/datasetRevision and is not invalidated by a custom result.",
+    "impact": "A correct backend can still yield wrong-area statistics in the browser.",
+    "minimum_action": "Use one result/display generation across both catalogue and job requests; invalidate pending catalogue loads when a job becomes the display source.",
+    "owner": "FRONTEND",
+    "other_agent": "Agent 1 active; latest observed WIP still has separate catalogue and job generations.",
+    "verification": "Delay catalogue response until after custom completion; custom result must remain displayed, including after region changes and overlapping polls.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A04",
+    "priority": "P1",
+    "title": "Advertised homepage requires Vercel login",
+    "scope": [
+      "main"
+    ],
+    "reference": "GitHub repository homepage metadata; evidence/hosted-auth-gate.json",
+    "evidence": "Anonymous GET of the repository homepage follows a redirect to https://vercel.com/login, title Login \u2013 Vercel. JSON and API probe paths also reach the authentication gate. Hosted deployment SHA is UNKNOWN; the main SHA identifies the audited repository, not the deployed bytes.",
+    "expected_vs_actual": "A URL supplied to judges should be publicly accessible. The advertised app URL currently requires login.",
+    "impact": "A judge following the homepage cannot demonstrate the application. A public repository can still serve as the required final-project link.",
+    "minimum_action": "Provide a public production URL or an explicitly accessible final project/demo link; test logged out and record the deployment SHA.",
+    "owner": "DEVOPS",
+    "other_agent": "Deployment work overlaps Agent 2; no public deployment verified.",
+    "verification": "Incognito anonymous GET and browser navigation return the application plus valid JSON; missing JSON returns a real error, not login/HTML.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A05",
+    "priority": "P1",
+    "title": "Pre-event implementation creates unresolved submission eligibility risk",
+    "scope": [
+      "main",
+      "science"
+    ],
+    "reference": "Git commit timestamps (main ce0b07b: 2026-11-14T03:19:24+02:00); official GO Team discussion #1827",
+    "evidence": "Official GO Team says working on the project before the Nov 14 09:00 local/owner start can lead to disqualification. Repository implementation commits predate that start, including Nov 13 work. Evidence establishes a conflict needing a ruling, not an actual disqualification. https://github.com/nasa/spaceapps/discussions/1827",
+    "expected_vs_actual": "Submission must comply with the event timing/third-party resource rules. No organizer clearance for this pre-existing implementation was available to audit.",
+    "impact": "A technically repaired app may still be ineligible. This is a submission decision gate, not a code defect.",
+    "minimum_action": "Obtain an organizer ruling on permissible reuse and disclose the pre-existing work honestly. Do not alter history to conceal timing.",
+    "owner": "SUBMISSION",
+    "other_agent": "Neither implementation agent owns organizer eligibility.",
+    "verification": "Preserve an authoritative written ruling and an accurate account of work completed during the event.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A06",
+    "priority": "P1",
+    "title": "Main defaults to development data and masks catalogue failures with mock fallback",
+    "scope": [
+      "main"
+    ],
+    "reference": "src/web/src/lib/dataLoader.ts:1; src/web/src/lib/dataLoader.ts:23; src/web/src/App.tsx:45; src/web/public/data/index.json:1; src/pipeline/analysis.py:38",
+    "evidence": "Main catalogue begins with a three-month mock AOI before the real Nile Delta dataset; App selects the first entry. Any invalid/missing index falls back to bundled mock data. Python adapter converts an NDVI ValueError into mock output. Explicit mock labels exist: this is not evidence that those fixtures are secretly measured observations.",
+    "expected_vs_actual": "Production should default to verified observations and report a data integrity failure. Development fallback should require explicit opt-in.",
+    "impact": "The first judge workflow can be a placeholder, and source failures can appear as working analytics.",
+    "minimum_action": "Release the observed-only catalogue/parser and backend no-mock production gate already implemented in isolated stabilization snapshots; keep mock generation isolated.",
+    "owner": "FRONTEND",
+    "other_agent": "F fixes frontend fallback/catalogue; B fixes production adapter/build. Neither is on audited main.",
+    "verification": "Delete/corrupt index or reject science input; production must show an error and never substitute a mock result.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A07",
+    "priority": "P1",
+    "title": "Main trusts mismatched cached results and publishes orphan results",
+    "scope": [
+      "main"
+    ],
+    "reference": "src/pipeline/aoi_job.py:71; src/pipeline/build.py:191",
+    "evidence": "Offline probe stores another region result under a completed job: main returns completed. A schema-valid result with no completed job is included by load_job_results. B rejects both. evidence/main-adversarial.json versus backend-adversarial.json.",
+    "expected_vs_actual": "Cache and publication must validate job/result identity, exact calendar, real-data flag and completed ownership.",
+    "impact": "Files can be served under the wrong AOI or a failed/orphan computation can enter the catalogue.",
+    "minimum_action": "Integrate B cache/publication identity checks and keep adversarial tests at the API and frontend boundaries too.",
+    "owner": "BACKEND",
+    "other_agent": "Confirmed fixed in isolated B and backend-latest, still present on main.",
+    "verification": "Wrong-AOI, missing status, failed status and mock result files must all be rejected without becoming catalogue entries.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A08",
+    "priority": "P1",
+    "title": "Worker claiming and local writes are not concurrency safe",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/pipeline/aoi_job.py:127 (main), :185 and :233 (backend-latest); src/pipeline/job_store.py:30",
+    "evidence": "Two synchronized workers read the same queued job and each calls fake NASA submit (count=2). LocalJobStore writers share <file>.tmp; a barrier-controlled two-writer test yields one FileNotFoundError. evidence/main-adversarial.json and backend-adversarial.json. B global workflow serialization reduces one deployment path but is not a store claim.",
+    "expected_vs_actual": "Exactly one owner should transition queued to processing and publish a given generation. Atomic rename does not provide mutual exclusion or unique temporary filenames.",
+    "impact": "Duplicate paid/limited remote work, lost status, stale worker overwrite, and failed writes.",
+    "minimum_action": "Add an atomic lease/claim with generation checks and unique temporary writes; define cross-process/distributed ownership before exposing public dispatch.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 owns orchestration. B does not fix worker/store concurrency.",
+    "verification": "Start two workers and two simultaneous submissions for one fingerprint; exactly one submit and one terminal generation, no write exceptions.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A09",
+    "priority": "P1",
+    "title": "Worker does not bind fetched provenance to the request",
+    "scope": [
+      "backend-latest",
+      "main"
+    ],
+    "reference": "src/pipeline/aoi_job.py:278 (backend-latest), :186 (main)",
+    "evidence": "Boundary probe returns status=ok plus a valid copied CSV, but manifest declares WRONG-DATASET, another bbox/task and marginal/10% QA. Backend-latest completes the job and labels result with the requested region. evidence/backend-boundaries.json. No NASA calls were made.",
+    "expected_vs_actual": "Fetched product, task, AOI, dates, QA policy and input checksums should match the job before statistics or relabelling.",
+    "impact": "Strong result-side identity checks can authenticate newly assigned labels while the underlying observations come from elsewhere.",
+    "minimum_action": "Validate the fetch manifest and raster/CSV lineage against the immutable request before analysis; bind the result to checked source hashes.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 active; this check is absent in audited committed backend.",
+    "verification": "Change each manifest identity/QA field independently; completion must be refused with an integrity error.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A10",
+    "priority": "P1",
+    "title": "Pixel temporal eligibility uses loaded acquisitions instead of requested calendar",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/data/fetch.py:227; src/data/fetch.py:257",
+    "evidence": "A one-pixel raster valid in the only loaded acquisition passes min_pixel_presence=.8 for a requested 24-month window; output contains 1 finite and 23 missing months. Missing acquisitions enter only after the eligible mask is calculated. Offline synthetic raster probe reproduces this.",
+    "expected_vs_actual": "The documented study-period presence policy should count requested months, or explicitly define an acquisitions-only policy and report its denominator.",
+    "impact": "Partial downloads/missing acquisitions can create a different eligible mask than a complete retrieval and bias regional statistics. This does not establish a defect in the complete 288-month baseline.",
+    "minimum_action": "Validate acquisition completeness before mask construction, or use the requested calendar consistently; filter out-of-window files and reject duplicates before computing presence.",
+    "owner": "SCIENCE",
+    "other_agent": "No production statistical method substitution requested; backend/data processing owner must resolve policy.",
+    "verification": "One valid month out of 24 must not satisfy an 80%-of-study-months policy. Missing, extra and duplicate acquisitions must have deterministic documented behavior.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A11",
+    "priority": "P1",
+    "title": "Corrupt result JSON leaves a completed job unrecoverable",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/pipeline/job_store.py:29; src/pipeline/aoi_job.py:128 (backend-latest)",
+    "evidence": "Write malformed result JSON for a completed job, then call create_or_reuse_job. JSONDecodeError escapes before B validation try block, and stored status remains completed. evidence/*-adversarial.json.",
+    "expected_vs_actual": "Corrupt cache should become an explicit recoverable/quarantined integrity state, not an unhandled read exception with stale success.",
+    "impact": "Requests can repeatedly fail while status claims completion; users cannot repair via normal retry.",
+    "minimum_action": "Handle decoding/read failures around the initial cache read, clear invalid success references and define safe recomputation/reconciliation.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 active; not fixed by B cache schema validation.",
+    "verification": "Malformed/truncated job and result files produce durable diagnostic states and a documented retry path, never uncaught server errors.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A12",
+    "priority": "P1",
+    "title": "Expired NASA task retries reuse the same expired task indefinitely",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/data/fetch.py:122; src/pipeline/aoi_job.py:148 and :300 (backend-latest)",
+    "evidence": "Fake expired fetch twice produces failed/retryable=true with the same nasa_task_id; create/retry retains that ID and does not submit a replacement. evidence/backend-boundaries.json.",
+    "expected_vs_actual": "An expired terminal NASA task must have a distinct reconciliation/resubmission policy from a merely pending or temporarily unavailable task.",
+    "impact": "Retry button can loop forever without making progress. Generic error strings are not a sufficient state model.",
+    "minimum_action": "Classify remote terminal states, preserve diagnostic lineage, and provide an explicitly permitted fresh-task transition; keep ambiguous submission nonretryable until reconciled.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 owns retry lifecycle; B handles ambiguous submission but not expired-task recovery.",
+    "verification": "Pending resumes without duplication; expired reaches a fresh authorized task or clear nonretryable action, never endless retry on an unusable ID.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A13",
+    "priority": "P1",
+    "title": "Global Actions concurrency is not a durable queue",
+    "scope": [
+      "backend-latest",
+      "backend-stabilization"
+    ],
+    "reference": ".github/workflows/nasa-aoi-job.yml:28",
+    "evidence": "B uses one concurrency group per branch, cancel-in-progress=false, and no explicit extended queue. Official GitHub default permits one running plus one pending; a newer pending run replaces the prior pending run. Thus a third distinct AOI can cancel the second before it persists an error. This is a source/configuration consequence, not a live workflow experiment.",
+    "expected_vs_actual": "Every accepted job needs eventual processing or a durable terminal cancellation. Serializing writers alone does not preserve all accepted jobs.",
+    "impact": "Multi-user traffic can leave permanently queued orphan jobs.",
+    "minimum_action": "Use a durable application queue or verified supported Actions queue configuration plus dispatch/run reconciliation; do not rely on default concurrency as FIFO.",
+    "owner": "BACKEND",
+    "other_agent": "B intentionally documents manual-worker scope; Agent 2 must not expose it as a durable queue.",
+    "verification": "Submit three distinct jobs while one is running; all receive eventual terminal outcomes, including cancellation/restart scenarios.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A14",
+    "priority": "P1",
+    "title": "Main loses remote task checkpoint on runner interruption",
+    "scope": [
+      "main"
+    ],
+    "reference": ".github/workflows/nasa-aoi-job.yml:67; .github/workflows/nasa-aoi-job.yml:83; src/pipeline/aoi_job.py:170",
+    "evidence": "Main saves task ID locally, waits/downloads/analyzes, then commits only in the final step. Runner termination before final persistence loses the remote task ID. Different AOIs can also push divergent commits without pull/retry. B adds prepare-only checkpoint persistence, evidence artifacts and rebase before push.",
+    "expected_vs_actual": "A task identity must be durable before waiting, and failed persistence must be recoverable.",
+    "impact": "Orphan NASA work and duplicate submissions after a crash; computed results may never reach users.",
+    "minimum_action": "Integrate B checkpoint-before-wait path, then test abrupt termination and remote write conflicts; retain an artifact reconciliation procedure.",
+    "owner": "DEVOPS",
+    "other_agent": "Improved in B/backend-latest; remote push failures and artifacts-only recovery still need acceptance testing.",
+    "verification": "Kill a runner immediately after submit/checkpoint, restart on a clean filesystem, and prove the same task is resumed without another submit.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A15",
+    "priority": "P1",
+    "title": "Compute completion does not guarantee public result availability",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/pipeline/aoi_job.py:204 (main), :298 (backend-latest); .github/workflows/nasa-aoi-job.yml:83; scripts/prepare-static-release.mjs:24 (backend-latest)",
+    "evidence": "Worker writes data/jobs/results then marks completed, but does not build/copy public/data or deliver a hosted result endpoint. Frontend main maps results/<id>.json to /data/results/<id>.json. B static release gate intentionally allows exactly one independently reviewed Nile Delta dataset, rejecting arbitrary real additions. S proposes a dynamic result endpoint but is unmerged/unhosted.",
+    "expected_vs_actual": "A public completed response must point to an already retrievable, validated result, or a separate publishing state must remain visible.",
+    "impact": "Users can see completed jobs followed by 404/HTML, or a later Vercel build can fail when arbitrary results enter the static catalogue.",
+    "minimum_action": "Use a durable dynamic endpoint for live results, or add an explicit validated publication step/state. Keep the static release allowlist deliberate.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 is building result delivery; neither disk writes nor GitHub commits prove deployment availability.",
+    "verification": "A fresh browser immediately fetching every completed job URL gets JSON for that job, before/after cold deployment, without relying on a developer build.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A16",
+    "priority": "P1",
+    "title": "Main headline and significance badge overstate nominal inference",
+    "scope": [
+      "main"
+    ],
+    "reference": "src/web/src/components/VerdictCard.tsx:38; :89; src/stats/stats.py:120; src/pipeline/build.py:131",
+    "evidence": "Main shows Statistically Significant and formats baseline p as 0.0000. Generic build uses analyze_trend rather than the richer baseline export, dropping baseline-specific coverage/sensitivity cautions. Caveats do mention independence, so this is an interpretation hierarchy defect, not absence of all warning. Saved synthetic nulls reject 51.1\u201351.6% at rho=.8 for ordinary MK; not a baseline-specific false-positive probability.",
+    "expected_vs_actual": "Nominal uncorrected results should be visibly provisional at interpretation, with nonzero scientific notation and spatial coverage distinguished from observation count.",
+    "impact": "Judges can mistake a small uncalibrated p-value for conclusive regional ecological change.",
+    "minimum_action": "Integrate F provisional terminology/formatting and preserve the reviewed science caveats in published JSON; retain the existing production method, with honest assumptions.",
+    "owner": "SCIENCE",
+    "other_agent": "F fixes interpretation UI; B preserves reviewed baseline output. Both remain isolated from main.",
+    "verification": "Published baseline shows nonzero p, ordinary/autocorrected=false, provisional label and coverage caveat at the verdict; no calibrated 95% confidence claim.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A17",
+    "priority": "P1",
+    "title": "Unmerged HTTP service serves orphan JSON and fails cross-origin browser contract",
+    "scope": [
+      "request-service"
+    ],
+    "reference": "src/pipeline/job_api.py:102; :133",
+    "evidence": "Read-only local server probe: a result file without any job returns HTTP200 with arbitrary synthetic JSON. OPTIONS returns501 and neither it nor POST includes Access-Control-Allow-Origin. evidence/api-boundaries.json. The same service files were present in observed backend WIP; no deployed behavior is claimed.",
+    "expected_vs_actual": "Result GET should require a completed matching job and validate identity/schema. A separately hosted JSON POST service needs the actual configured origin/preflight policy.",
+    "impact": "Integrating the service as-is can bypass B validation or fail immediately from an external frontend origin.",
+    "minimum_action": "Put B validation at the HTTP result boundary; deploy same-origin routing or explicit constrained CORS/preflight support, and test a real browser.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 actively integrates this service; this is an activation gate for the observed snapshot.",
+    "verification": "Orphan/corrupt/mismatched results never return200; real cross-origin OPTIONS and POST succeed only for approved origins.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A18",
+    "priority": "P1",
+    "title": "Public dispatch service has no application resource budget controls",
+    "scope": [
+      "request-service"
+    ],
+    "reference": "src/pipeline/job_api.py:53; :137; src/pipeline/aoi_request.py:74",
+    "evidence": "Observed stdlib handler reads declared Content-Length without a cap; submit exposes dispatch without per-client quotas/admission control, and request dates lack a bounded supported range/duration. AOI dimensions are bounded, which is good. No production edge policy was available to audit; this finding is about the service proposed for public deployment, not an observed remote exploit.",
+    "expected_vs_actual": "An anonymous service that dispatches credentialed workflows needs bounded inputs, admission limits and durable backpressure.",
+    "impact": "Many distinct AOIs/windows or oversized bodies can consume runner/API/memory budgets and starve judges.",
+    "minimum_action": "Bound request size and supported dates/duration, add rate/admission controls at an explicit trusted layer, and avoid exposing privileged dispatch until verified.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 deployment scope; controls could live at the edge but must be demonstrated.",
+    "verification": "Oversized bodies, extreme dates and quota bursts are rejected before persistence/dispatch; normal duplicate cache hits do not consume another task.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A19",
+    "priority": "P1",
+    "title": "Original Nile Delta raster lineage is not independently reproducible from the release",
+    "scope": [
+      "main"
+    ],
+    "reference": "data/README.md; reports/nile_delta_ndvi_data_quality.md:11; data/archives/seed-102/archive-index.json",
+    "evidence": "Preserved CSV arithmetic is reproducible, but original Nile Delta raw rasters and an authenticated task-to-file checksum chain are not in the exported release. Local raw inventory now contains Canadian seed-102 research rasters (bounds roughly -72.73,46.07 to -72.22,46.58), not Nile Delta, plus unrelated metadata. Seed-102 archives have null publication URLs and experimental .6 eligibility; they cannot validate the .8 production baseline.",
+    "expected_vs_actual": "Strong provenance/QA claims need a durable manifest and reviewable source lineage, not only compatible CSV labels.",
+    "impact": "NASA origin, actual original QA mask and resampling cannot be independently authenticated in this audit. This is a missing-validation limitation, not proof of fabrication.",
+    "minimum_action": "Archive the original task metadata, product/layer/window/AOI, source hashes and processing environment with a durable accessible location; narrow claims until independently reviewed.",
+    "owner": "SCIENCE",
+    "other_agent": "Research archive work exists separately; neither frontend nor API completion closes original-baseline provenance.",
+    "verification": "Restore the exact original baseline inputs into scratch, verify hashes and reprocess to the preserved CSV within a stated numerical tolerance.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A20",
+    "priority": "P2",
+    "title": "Corrupt download cache and partial TIFF names have no repair path",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/data/fetch.py:137; :184",
+    "evidence": "Fake download leaves an existing file containing bytes corrupt untouched because exists() skips transfer; only fake task/bundle GETs occur. A .tif.tmp is included by processing glob and can trigger a bogus missing-QA month. Evidence in offline probes.",
+    "expected_vs_actual": "Cached rasters should be verified and temporary/incomplete files excluded.",
+    "impact": "Interrupted/corrupt local caches can repeatedly fail otherwise recoverable jobs. No numerical error in the preserved baseline is established.",
+    "minimum_action": "Validate cached byte/hash/raster integrity and quarantine bad entries; ignore partial suffixes and validate unique requested-month pairs.",
+    "owner": "BACKEND",
+    "other_agent": "Agent 2 may encounter this in recovery. Research branch has stricter filename selection, not production.",
+    "verification": "Inject a truncated cached TIFF and a .tif.tmp; valid data recovers or fails with an actionable corruption state, never silently reuses invalid bytes.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A21",
+    "priority": "P2",
+    "title": "Two observations can produce a nominal asymptotic test",
+    "scope": [
+      "main",
+      "backend-latest"
+    ],
+    "reference": "src/stats/stats.py:99; :113; :137",
+    "evidence": "Two January observations in different years are accepted, producing n=2, tau=1 and p=1; zero/one/single-year/all-missing inputs are refused. The code already warns about small-sample asymptotics.",
+    "expected_vs_actual": "An investigation UI should distinguish computable statistics from a sufficiently supported inferential analysis.",
+    "impact": "Very short date windows can look like fully assessed trends despite little information.",
+    "minimum_action": "Define a scientifically justified minimum reporting policy and show insufficient-evidence state; do not silently change the method.",
+    "owner": "SCIENCE",
+    "other_agent": "Future policy improvement, not a confirmed numerical bug.",
+    "verification": "Tiny windows have explicit insufficient-evidence interpretation; boundary and constant-series cases stay finite and honest.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A22",
+    "priority": "P2",
+    "title": "Documentation describes infrastructure/features that are not implemented",
+    "scope": [
+      "main"
+    ],
+    "reference": "docs/infrastructure.md:4; :6; README.md (CSV/statistics sections)",
+    "evidence": "Docs describe a lightweight Vercel API and optional Blob backend when a token is configured, but no Blob implementation exists and main has no hosted handler. README still describes older CSV/statistics integration. There is no repository SRS or project-specific judging rubric to override the official challenge.",
+    "expected_vs_actual": "Deployment and advertised features should reflect the exact release, with planned components labelled planned.",
+    "impact": "Operators can set ineffective environment variables or assume a public workflow exists. Higher-risk missing API/publication defects are counted separately.",
+    "minimum_action": "Update docs after the final architecture is frozen; include supported product, actual storage/queue and static versus live scope.",
+    "owner": "DEVOPS",
+    "other_agent": "Both stabilization reports clarify their limited scope; public main docs remain stale.",
+    "verification": "Follow deployment instructions in a fresh clone with only documented variables and obtain the described behavior.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A23",
+    "priority": "P2",
+    "title": "Main runtime ECharts dependency has a moderate security advisory",
+    "scope": [
+      "main"
+    ],
+    "reference": "src/web/package-lock.json (echarts); evidence/main-npm-audit.json",
+    "evidence": "npm audit --omit=dev reports GHSA-fgmj-fm8m-jvvx for ECharts versions below6.1.0. F uses6.1.0 and independently audits with zero known runtime vulnerabilities. No exploit through current trusted chart data was demonstrated. Python locked-runtime audit reports no known vulnerabilities at audit time.",
+    "expected_vs_actual": "Release should use a patched dependency and constrain untrusted chart content.",
+    "impact": "Known XSS dependency risk if attacker-controlled content reaches affected rendering paths.",
+    "minimum_action": "Retain F patched dependency during integration and rerun lockfile audit.",
+    "owner": "FRONTEND",
+    "other_agent": "Fixed in isolated F dependency lock; not on audited main.",
+    "verification": "Final npm runtime audit is clean and untrusted labels cannot inject executable HTML.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A24",
+    "priority": "P2",
+    "title": "Large initial browser bundle lacks constrained-device verification",
+    "scope": [
+      "frontend-stabilization",
+      "main"
+    ],
+    "reference": "src/web build output; evidence/frontend-web-build.txt; evidence/main-web-build.txt",
+    "evidence": "Main emitted JS about3.33MB (1.01MB gzip); F about3.59MB (1.09MB gzip). Builds succeed. No throttled mobile performance acceptance was observed; headless globe-readiness test fails while9 other existing E2E tests pass.",
+    "expected_vs_actual": "A judge should reach a useful chart on modest hardware/network, including WebGL unavailable.",
+    "impact": "Loading/globe readiness can impair demonstrations; this is not evidence that all visible/headed sessions fail.",
+    "minimum_action": "Measure the final UI on a modest device; split optional globe/map dependencies if measurement warrants it and retain functional fallback.",
+    "owner": "FRONTEND",
+    "other_agent": "Agent 1 redesign changes rendering substantially; do not optimize an obsolete UI prematurely.",
+    "verification": "Cold-cache throttled browser reaches observed chart and accessible AOI controls; non-WebGL fallback completes the core demonstration.",
+    "confidence": "CONFIRMED"
+  },
+  {
+    "id": "A25",
+    "priority": "P2",
+    "title": "Main chart slope guide compresses irregular calendars",
+    "scope": [
+      "main"
+    ],
+    "reference": "src/web/src/components/TrendChart.tsx:35; :43; :53",
+    "evidence": "Guide uses row index and /120 nominal-month conversion. If absent months are omitted, category spacing and guide bridge them as adjacent months. Explicit null rows do not connect observations, which is correct. The complete baseline does not trigger this gap defect.",
+    "expected_vs_actual": "Calendar gaps must retain their temporal distance and guide units should use the same calendar basis as the estimator.",
+    "impact": "Future gapped results may be visually misinterpreted despite a correct calendar-based numerical slope.",
+    "minimum_action": "Retain F calendar-slot/chartData implementation and test omitted and explicit-null months.",
+    "owner": "FRONTEND",
+    "other_agent": "Fixed in isolated F chart helper; not on audited main.",
+    "verification": "Drop interior months and verify explicit gaps/calendar spacing and calendar-year slope guide, with no fabricated observation.",
+    "confidence": "CONFIRMED"
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "observations": [
+    {
+      "request": {
+        "bbox": [
+          30.7,
+          30.7,
+          31.3,
+          31.2
+        ],
+        "product": "MOD13A3.061",
+        "start_date": "01-01-2001",
+        "end_date": "12-31-2024",
+        "allow_marginal": false,
+        "min_pixel_presence": 0.8,
+        "processing_version": "1"
+      },
+      "csv": "../data/processed/nile_delta_ndvi.csv",
+      "sha256": "a2481b5ae93d18437efe0658df2f2466590424dd0504acf9fe01a03252e11e0a",
+      "source": "Existing measured Nile Delta development dataset; data/README.md",
+      "nasa_task_id": null,
+      "limitations": [
+        "Original NASA task identity and raw rasters are unavailable in this checkout.",
+        "QA is verified from saved processing documentation and monthly counts; raw pixel QA cannot be re-audited here.",
+        "Development diagnostic result, not a scientific holdout or calibrated causal inference."
+      ]
+    }
+  ]
+}

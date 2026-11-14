@@ -1,0 +1,213 @@
+{
+  "data/processed/nile_delta_ndvi.csv": "a2481b5ae93d18437efe0658df2f2466590424dd0504acf9fe01a03252e11e0a",
+  "src/stats/stats.py": "e81b4de89943cbf1e4ea2269019832674bff18379a5a8223c9d0cea42c7b3805",
+  "data/processed/nile_delta_ndvi.result.json": "20c41c70a8f1068f45f65312c16010ecbc324d0012000e7a1f8b6d33ca84c2e7",
+  "src/web/public/data/results/nile_delta_ndvi.json": "9d9b51168f7975b675eea6559c40e3b8b99e9a812b970abaa9508b909d574301",
+  "manifest_tail": {
+    "elapsed_seconds": 560.3856436799997,
+    "artifacts_sha256": {
+      "reports/ndvi_calibration_replicates.csv": "393a6a66ff40618f4d65c782108181df0c2b793639d84e750172f9e181d2d4b4",
+      "reports/ndvi_calibration_summary.csv": "00aae6a669009c96c503aacaa59433509f0e0cb80174086b0676c25516230f0e"
+    }
+  },
+  "replicate_count": 24000,
+  "columns": [
+    "scenario",
+    "replicate",
+    "seed",
+    "rho",
+    "sigma",
+    "trend",
+    "raw_min",
+    "raw_max",
+    "pipeline_warnings",
+    "ordinary_valid",
+    "ordinary_error",
+    "ordinary_p",
+    "ordinary_z",
+    "ordinary_var_s",
+    "ordinary_s",
+    "ordinary_tau",
+    "ordinary_slope_index",
+    "ordinary_p_stable",
+    "ordinary_reject",
+    "ordinary_warnings",
+    "yue_wang_valid",
+    "yue_wang_error",
+    "yue_wang_p",
+    "yue_wang_z",
+    "yue_wang_var_s",
+    "yue_wang_s",
+    "yue_wang_tau",
+    "yue_wang_slope_index",
+    "yue_wang_p_stable",
+    "yue_wang_reject",
+    "yue_wang_warnings",
+    "variance_multiplier",
+    "internal_detrended_acf1",
+    "slope_ndvi_decade"
+  ],
+  "null_rates": [
+    {
+      "rho": "0.0",
+      "sigma": "0.02",
+      "ordinary_rejections": "45",
+      "ordinary_rate": "0.045",
+      "ordinary_lower": "0.03379951228563171",
+      "ordinary_upper": "0.059682837936223455",
+      "yue_wang_rejections": "48",
+      "yue_wang_rate": "0.048",
+      "yue_wang_lower": "0.036393301020807914",
+      "yue_wang_upper": "0.06306608865013393"
+    },
+    {
+      "rho": "0.3",
+      "sigma": "0.02",
+      "ordinary_rejections": "159",
+      "ordinary_rate": "0.159",
+      "ordinary_lower": "0.1376463027469242",
+      "ordinary_upper": "0.18296354654022445",
+      "yue_wang_rejections": "76",
+      "yue_wang_rate": "0.076",
+      "yue_wang_lower": "0.06114944807170235",
+      "yue_wang_upper": "0.0940956431240484"
+    },
+    {
+      "rho": "0.6",
+      "sigma": "0.02",
+      "ordinary_rejections": "336",
+      "ordinary_rate": "0.336",
+      "ordinary_lower": "0.30740158982270954",
+      "ordinary_upper": "0.36585358696055253",
+      "yue_wang_rejections": "158",
+      "yue_wang_rate": "0.158",
+      "yue_wang_lower": "0.13670765691270592",
+      "yue_wang_upper": "0.1819098458914138"
+    },
+    {
+      "rho": "0.8",
+      "sigma": "0.02",
+      "ordinary_rejections": "511",
+      "ordinary_rate": "0.511",
+      "ordinary_lower": "0.48003496343658913",
+      "ordinary_upper": "0.5418808478767286",
+      "yue_wang_rejections": "300",
+      "yue_wang_rate": "0.3",
+      "yue_wang_lower": "0.2724068424770048",
+      "yue_wang_upper": "0.3291238609172172"
+    },
+    {
+      "rho": "0.0",
+      "sigma": "0.04",
+      "ordinary_rejections": "64",
+      "ordinary_rate": "0.064",
+      "ordinary_lower": "0.05043620089822952",
+      "ordinary_upper": "0.08090073250117454",
+      "yue_wang_rejections": "75",
+      "yue_wang_rate": "0.075",
+      "yue_wang_lower": "0.060251804973467354",
+      "yue_wang_upper": "0.0930009397392545"
+    },
+    {
+      "rho": "0.3",
+      "sigma": "0.04",
+      "ordinary_rejections": "128",
+      "ordinary_rate": "0.128",
+      "ordinary_lower": "0.10870752216300936",
+      "ordinary_upper": "0.15013958615024367",
+      "yue_wang_rejections": "64",
+      "yue_wang_rate": "0.064",
+      "yue_wang_lower": "0.05043620089822952",
+      "yue_wang_upper": "0.08090073250117454"
+    },
+    {
+      "rho": "0.6",
+      "sigma": "0.04",
+      "ordinary_rejections": "328",
+      "ordinary_rate": "0.328",
+      "ordinary_lower": "0.2996080384525803",
+      "ordinary_upper": "0.35770836646645066",
+      "yue_wang_rejections": "140",
+      "yue_wang_rate": "0.14",
+      "yue_wang_lower": "0.11986857462597703",
+      "yue_wang_upper": "0.1628866914836227"
+    },
+    {
+      "rho": "0.8",
+      "sigma": "0.04",
+      "ordinary_rejections": "516",
+      "ordinary_rate": "0.516",
+      "ordinary_lower": "0.48502415202019794",
+      "ordinary_upper": "0.5468533917082643",
+      "yue_wang_rejections": "294",
+      "yue_wang_rate": "0.294",
+      "yue_wang_lower": "0.2665940090203127",
+      "yue_wang_upper": "0.3229826154757359"
+    }
+  ],
+  "/home/mostafa/trendscope/data/raw/rasters": {
+    "tif_count": 1342,
+    "direct_tif_count": 0,
+    "directories": {
+      "development_metadata": 4,
+      "benchmark_s102_recovered/aoi_s102": 474,
+      "benchmark_s102_2001_2024/aoi_s102": 864
+    }
+  },
+  "/home/mostafa/trendscope-release/backend-integration/data/raw/rasters": {
+    "tif_count": 0,
+    "direct_tif_count": 0,
+    "directories": {}
+  },
+  "/home/mostafa/trendscope-release/geographic-ux/data/raw/rasters": {
+    "tif_count": 0,
+    "direct_tif_count": 0,
+    "directories": {}
+  },
+  "saved_artifact_hashes_verified": {
+    "reports/ndvi_calibration_replicates.csv": true,
+    "reports/ndvi_calibration_summary.csv": true
+  },
+  "independently_counted_null_replicates": {
+    "('0.0', '0.02')": [
+      1000,
+      45,
+      48
+    ],
+    "('0.3', '0.02')": [
+      1000,
+      159,
+      76
+    ],
+    "('0.6', '0.02')": [
+      1000,
+      336,
+      158
+    ],
+    "('0.8', '0.02')": [
+      1000,
+      511,
+      300
+    ],
+    "('0.0', '0.04')": [
+      1000,
+      64,
+      75
+    ],
+    "('0.3', '0.04')": [
+      1000,
+      128,
+      64
+    ],
+    "('0.6', '0.04')": [
+      1000,
+      328,
+      140
+    ],
+    "('0.8', '0.04')": [
+      1000,
+      516,
+      294
+    ]
+  }
+}

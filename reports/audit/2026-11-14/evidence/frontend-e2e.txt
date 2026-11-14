@@ -1,0 +1,55 @@
+
+> trendscope-web@0.1.0 test:e2e
+> playwright test --config audit.playwright.config.ts
+
+[WebServer] (node:6991) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:7024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+(node:7075) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node-22 --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/browser/jobs.spec.ts:15:1 › queued → processing → completed uses documented status/result endpoints and dates (9.9s)
+  ✓   2 tests/browser/jobs.spec.ts:40:1 › unsupported land request failure is shown while observed data stays available (1.2s)
+  ✓   3 tests/browser/jobs.spec.ts:50:1 › blank dates refuse submission; HTML API fallback reports unavailable (1.3s)
+  ✓   4 tests/browser/jobs.spec.ts:66:1 › polling failure stops without changing a pending job into a success (5.6s)
+  ✘   5 tests/browser/release.spec.ts:3:1 › production journey: real default, chart modes, globe/map, compare and refresh (7.0s)
+(node:7697) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node-22 --trace-warnings ...` to show where the warning was created)
+  ✓   6 tests/browser/release.spec.ts:54:1 › mobile layout has no horizontal overflow (1.0s)
+  ✓   7 tests/browser/release.spec.ts:64:1 › catalogue network failure and HTML fallback never display mocks (547ms)
+  ✓   8 tests/browser/release.spec.ts:71:1 › malformed result is a visible error instead of a crash or indefinite loading (702ms)
+  ✓   9 tests/browser/release.spec.ts:82:1 › empty catalogue is explicit (560ms)
+  ✓  10 tests/browser/release.spec.ts:88:1 › WebGL initialization failure keeps the map and observed result usable (1.1s)
+
+
+  1) tests/browser/release.spec.ts:3:1 › production journey: real default, chart modes, globe/map, compare and refresh 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[data-globe-ready=true]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('[data-globe-ready=true]') with timeout 5000ms
+      - waiting for locator('[data-globe-ready=true]')
+
+
+      12 |   await page.getByRole("button", { name: "Raw Value", exact: true }).click();
+      13 |   await page.getByRole("button", { name: "Anomaly", exact: true }).click();
+    > 14 |   await expect(page.locator("[data-globe-ready=true]")).toBeVisible();
+         |                                                         ^
+      15 |   const globe = page.locator("canvas").first();
+      16 |   const bounds = await globe.boundingBox();
+      17 |   const position = {x: bounds!.width * 0.6, y: bounds!.height * 0.6};
+        at /home/mostafa/trendscope-audit/2026-11-14/snapshots/frontend-stabilization/src/web/tests/browser/release.spec.ts:14:57
+
+    Error Context: ../../../../evidence/frontend-browser-artifacts/release-production-journey-908dc-obe-map-compare-and-refresh/error-context.md
+
+  1 failed
+    tests/browser/release.spec.ts:3:1 › production journey: real default, chart modes, globe/map, compare and refresh 
+  9 passed (33.4s)

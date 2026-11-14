@@ -1,0 +1,34 @@
+[
+  {
+    "directory": "data/raw/rasters/benchmark_s102_2001_2024/aoi_s102",
+    "shape": [
+      61,
+      61
+    ],
+    "crs": "EPSG:4326",
+    "bounds": [
+      -72.7333333268175,
+      46.07499999587236,
+      -72.2249999935297,
+      46.583333329160155
+    ],
+    "ndvi_files": 288,
+    "qa_files": 288
+  },
+  {
+    "directory": "data/raw/rasters/benchmark_s102_recovered/aoi_s102",
+    "shape": [
+      61,
+      61
+    ],
+    "crs": "EPSG:4326",
+    "bounds": [
+      -72.7333333268175,
+      46.07499999587236,
+      -72.2249999935297,
+      46.583333329160155
+    ],
+    "ndvi_files": 288,
+    "qa_files": 0
+  }
+]

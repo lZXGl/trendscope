@@ -1,0 +1,38 @@
+{
+  "main": {
+    "ref": "origin/main",
+    "sha": "ce0b07becfb0952992fa002f48fdbb76cfe78a1d"
+  },
+  "frontend-stabilization": {
+    "ref": "release/frontend-stabilization",
+    "sha": "0f0c14179dc6cf48555fcceb9171ecd860b38d5d"
+  },
+  "backend-stabilization": {
+    "ref": "release/backend-integration",
+    "sha": "5fbfc83569e55a7d7431d76a4c138d586c5306ec"
+  },
+  "frontend-active-committed": {
+    "ref": "feat/frontend-geographic-ux",
+    "sha": "0f0c14179dc6cf48555fcceb9171ecd860b38d5d"
+  },
+  "backend-active-committed": {
+    "ref": "feat/arbitrary-aoi-api",
+    "sha": "ce0b07becfb0952992fa002f48fdbb76cfe78a1d"
+  },
+  "science": {
+    "ref": "feat/stats",
+    "sha": "a2b456e37e208a7dc6fd4cf1a52f33a0a6505107"
+  },
+  "research": {
+    "ref": "research/adaptive-methods",
+    "sha": "f4fe108e0d3895d3915051ebda3deb49b72ebd27"
+  },
+  "request-service": {
+    "ref": "origin/feat/backend",
+    "sha": "f367fb2c3cfcaac490a354f5fcc0c6dab95a6d37"
+  },
+  "backend-latest": {
+    "ref": "feat/arbitrary-aoi-api",
+    "sha": "56b8ef27d0f7b5bfb81bde04e145d9c4f584959b"
+  }
+}

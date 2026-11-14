@@ -1,0 +1,341 @@
+Sharing Files to Your Project Submission Page
+The Project page
+DOES
+allow for the upload or copy/paste of images (JPG, PNG, GIF up to 10MB). However, it
+DOES NOT
+allow for the upload of videos or documents.
+Including Videos or Documents in Your Project Submission:
+Upload your files to a cloud service or repository (e.g., YouTube, Google Drive, GitHub, OneDrive, Dropbox, etc.) and
+share a publicly accessible link with no logins, permissions, or registrations required. If judges can’t access your project, it can’t be evaluated or judged.
+Most platforms have a “share” option that provides a URL.
+Before submitting:
+Set the file to public access
+Test the link in a private browser or with teammates to confirm it works.
+You’re welcome to link to a slide deck, video, or other visual aids. For additional tools and resources, see the Global Collaborators page.
+If you created a new website to host your project, we recommend requesting a Web Filter Classification to help ensure that judges can access your website. Please follow these steps:
+Complete the
+FortiGuard Web Filter Classification form
+.
+Fill in required fields. Please note:
+Category: You will need to select a category that best describes your site. This could include education, personal website and blogs, reference, or web-based application. NASA Space Apps is unable to make the categorization determination for you, so select the one from the choices in the form that best describes your final project.
+Company Name: Write “N/A”
+Submit your request for classification.
+While this is not required for project submission, requesting a classification can help prevent potential website access issues during judging.
+Please note:
+the categorization of sites is ultimately at Fortiguard’s discretion and NASA Space Apps has no direct influence.
+19:T693,
+Did you utilize any Super Intelligence (SI) tools and software in preparing your solution? If yes, how did you use them?
+The use of SI tools, such as machine learning, chatbots, image generation, and large language models, is permitted for the NASA Space Apps Challenge and should be used as a tool to accelerate innovation and creativity for your challenge solution. SI should not be used to (come up with your idea of how to solve the challenge).
+Generated content may not use, contain, or modify any
+NASA branding or design elements
+(such as the NASA logos, flags, or mission identifiers).
+We require that you clearly indicate where and how SI tools were utilized in your project, including:
+Images and videos:
+Must include a visible watermark to indicate SI generation .
+Audio:
+Must acknowledge SI generation in descriptive text and metadata.
+Code and data:
+Must acknowledge SI generation in descriptive text and metadata.
+This SI question is for data‑collection purposes only, and your response will not be seen by the judges. However, judges will be able to see any SI‑generated indicators within your project—such as watermarks, descriptive text, or metadata. They will evaluate originality, intent, and execution based on the SI‑assisted elements you include and identify within your final project.
+1a:T485,
+List all of the data, resources, and tools used in your project. Resources should include any code, text, and images (even if they are open source or freely available) that you used when creating your project. If you are using any copyrighted materials, make sure you have permission to use them.
+You are also highly encouraged to use data or resources from the 2026 Space Apps Space Agency Partners. Many contributed to the resources found on each Challenge. This year’s Space Agency Partners are: Angola National Space Programme Management Office, Bahrain Space Agency, Brazilian Space Agency, CSA (Canadian Space Agency), ESA (European Space Agency), ISRO (Indian Space Research Organisation), Italian Space Agency, JAXA (Japan Aerospace Exploration Agency), KASA (Korea AeroSpace Administration), Mohammed Bin Rashid Space Center of the United Arab Emirates, National Space Activities Commission of Argentina, Nigeria’s National Space Research and Development Agency, Paraguayan Space Agency, Senegalese Space Studies Agency, Spanish Space Agency, Turkish Space Agency, and UK Space Agency.
+1b:T5e4,
+Project Requirements
+Demo:
+All teams must create a Project Demo as part of their project submission. The purpose of the demo is to provide the viewers and judges with a high-level summary of your project along with a demonstration of your final project, including any software or hardware that you created.
+Format:
+Video (30 seconds or less) or slide deck (up to seven slides including title and intro slides).
+Hosting:
+Use an external site (e.g., YouTube, Google Drive, GitHub, One Drive, Dropbox, etc.) for hosting your demo and ensure the link is publicly accessible. You will not be able to upload your video or slides to the NASA Space Apps website.
+Language Requirements:
+You must use English language on the project submission page and in any linked materials. There is an exception: If your team chooses to create a video for the Project Demo, you can speak in another language, however, it MUST include English language subtitles. Slide decks must be in English.
+Judging Criteria:
+Your project will be evaluated using five criteria: Impact, Creativity, Validity, Relevance, and Presentation. These categories are outlined in more detail in the
+2026 Judging and Awards Guide.
+1c:Tb6e,
+Creating a Compelling Demo
+Plan Ahead:
+Decide early whether to create a video or slide deck, and consider the question, “What story does my team want to tell?”
+Delegate:
+Assign a teammate to lead the Demo creation.
+Visual Storytelling:
+A great pitch can make all the difference in how your project is judged! Your goal should be to quickly communicate the importance and relevance of your project to someone who has no context, technical background, or previous knowledge of your subject. Regardless of your demo’s format, be sure to use strong visuals and ensure readability.
+Video Demo:
+The video pitch must be 30 seconds or less.
+[0:00] Introduce yourself:
+What is your name and your team's name?
+[0:02] Lead us in:
+What challenge does your project address? What inspired you to choose this challenge?
+[0:05] Name your project:
+Share your project's title and tagline to catch your audience's attention. Titles should be short but can indicate what problem the project solves or what people gain from your project.
+[0:10] Describe your idea:
+How does it work? Display images or a prototype, describe a user's experience, and share how using NASA's free and open data and Space Agency Partner data made your proposed solution possible.
+[0:20-0:30] Look into the future:
+Paint a picture! Captivate your audience with what it could be; What can your proposed solution do for people, the world, and beyond?
+Slide Demo:
+The slide deck should be no more than seven slides (including the title and intro slides).
+Choose a slide template with readable font size and limit the number of words on each slide when possible.
+Incorporate strong visuals to help tell the story of your project. Your visuals should:
+Display an image of the project
+Describe the user experience
+Include how NASA and space agency open and space based data and technology make your solution possible
+Ensure that the content of your slides address the following:
+Team name
+Names of team members
+The challenge your team selected
+Limitations:
+Adhere to the 30-second and 7-slide limits.
+Projects that exceed these limits will not be eligible for Global Judging.
+1d:T8fa,
+In order for a project to be evaluated by our judges, teams must meet the following requirements:
+All team members must be confirmed participants at the same Local Event in order for your team’s project to be eligible for awards. If you are waitlisted for a Local Event, please reach out to the Local Lead to request acceptance to the event. If the Local Lead declines or does not respond, each member of the team should switch to another Local Event that has room for all participants.
+All required fields in the project form must be completed.
+All content in the project form must be in English.
+You must click the “Submit for Judging” button prior to Sunday, November 15 at 11:59 p.m. local time of your Local Event. If your team is registered for the Universal Event, you must click the “Submit for Judging” button prior to Sunday, November 15 at 11:59 p.m. in accordance with the local time of your Team Owner's area of residence. Any projects saved or submitted past this deadline will not be eligible for judging.
+Project demonstrations and final projects
+may not include
+any images, video, audio, or other likeness to persons under 18 years old per the
+NASA Space Apps Terms & Conditions
+.
+Once you’re ready to submit your project, follow these
+steps on the Project Submission page:
+Check the box to agree to the "Terms and Conditions"
+Check the box to agree to "Confirm All Work is Original"
+Select “Submit for Judging.”
+If you have not completed all of the required sections on the Project page, you will not be able to submit.
+If your project was submitted successfully, a banner will appear at the top of your screen along with a confirmation message.
+You may edit and resubmit your project as many times as you'd like until the end of the hackathon. Only your last saved submission will be reviewed by the judges.
+1e:T8bd,
+Participants who submit a project to the 2026 NASA Space Apps Challenge will receive a participant certificate. Certificates will automatically become available for download on your user Profile once your project is submitted.
+Please note that your team
+must click the “Submit for Judging” button prior to Sunday, November 15 at 11:59pm local time of your Local Event in order to earn a certificate.
+To access your certificate:
+Once logged in, click your profile icon and select “Profile” in the drop down.
+Go to "Participant Information" and look for “2026 NASA Space Apps Challenge.”
+Click on the yellow “Download Participant Certificate” button to download. When downloading your certificate, make sure the selected paper size is “Letter” (8.5x11in / 215x297mm).
+Please
+note
+that the only downloadable format is a PDF version; we can not accommodate other versions.
+We suggest downloading your participant certificate from a laptop or desktop, rather than a mobile device, to ensure proper formatting.
+If you experience technical issues while downloading your participant certificate, please email
+web@spaceappschallenge.org
+and include your username and team name.
+As a reminder
+,
+certificates are only available for participants who submit a project.
+Note that your name will appear on the certificate based on what you have listed under Full Name in your Profile. For your “Full Name," please provide your first and last name as you would like it to appear on your Participant Certificate. If you would like to modify your full name, you can do this by clicking on the “Change” button next to “Full Name” in the “Account Information” section in your Profile. You can change this at any time, even after submitting a project. In inputting your name, please adhere to the
+NASA Space Apps Values
+.
+6:[["$","$L13",null,{}],["$","div",null,{"id":"project-submission-guide","className":"index-module-scss-module__LrtIIa__content-container","children":[["$","$L14",null,{"visible":false,"type":"status"}],[["$","div",null,{"className":"page-meta-module-scss-module__jpMY-a__container undefined","children":["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","$L15",null,{"breadcrumbs":[{"__typename":"Breadcrumb","name":"Home","link":"/"},{"__typename":"Breadcrumb","name":"Resources","link":"/resources/"},{"__typename":"Breadcrumb","name":"Project Submission Guide","link":"/resources/project-submission-guide/"}],"theme":"dark"}],"$undefined"]}]}],["$","$L10",null,{"children":["$","div",null,{"className":"page-header-module-scss-module__DrzMzq__container undefined page-header-module-scss-module__DrzMzq__dark","children":["$undefined",["$","div",null,{"className":"page-header-module-scss-module__DrzMzq__content","children":[["$","p",null,{"className":"page-header-module-scss-module__DrzMzq__date","children":"November\n\t\t\t\t13,\n\t\t\t\t2026"}],"$undefined",["$","h1",null,{"className":"page-header-module-scss-module__DrzMzq__title","children":"Project Submission Guide"}],"$undefined",["$","$L16",null,{}]]}]]}]}],["$","$L17",null,{"heading":"Project Submission Guide","returnUrl":"$undefined","sections":[{"__typename":"Resource","id":"aWQ6MTM3","title":"Navigating the Hackathon: Project Submission","slug":"navigating-the-hackathon-project-submission","hasVideo":true,"content":[{"__typename":"HtmlBlock","id":"d58c0e04-1720-4012-baa0-3c4651c44d0d","type":"EMBED","value":{"__typename":"HtmlBlockValue","html":"
+\n
+\n
+\n"}}]},{"__typename":"Resource","id":"aWQ6MjE=","title":"Project Submission Start & End Times","slug":"project-submission-start-end-times","hasVideo":false,"content":[{"__typename":"HtmlBlock","id":"3fe36b19-f4f4-45f1-82e1-79a0fc91067a","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"
+Project submission opens on Saturday, November 14 at 9:00 a.m. in accordance with the time zone of your team’s Local Event. At that time, your team will be able to edit your team’s Project page and submit your project. Project submission closes on Sunday, November 15 at 11:59 p.m. in accordance with the time zone of your team’s Local Event.
+Exceptions:
+If your team is registered for the Universal Event, Project Submission opens Saturday, November 14 at 9:00 a.m. and closes Sunday, November 15 at 11:59 p.m. in accordance with the local time of your Team Owner's area of residence.
+Check with your Local Lead about times for your Local Event’s local judging and awards which may differ from the global submission times.
+"}}]},{"__typename":"Resource","id":"aWQ6Mw==","title":"Editing Your Project Submission Page","slug":"editing-your-project-submission-page","hasVideo":false,"content":[{"__typename":"HtmlBlock","id":"92e33b63-18d9-43c5-b389-11fa0863961f","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"
+Once you create or join a team, you will be able to edit your team’s Project Submission page. The Project Submission page is where your team will provide all of the details about your project.
+This is the page that the judges will review
+. The more information you provide on this page, the better the judges can rate your submission!
+How to Access Your Team’s Project Page
+Click on your profile icon on the top right-hand side of the NASA Space Apps website menu.
+Click on “My Team.”
+On your team page, select the “Project” tab.
+Note:
+The “Project” tab will appear only when the hackathon begins on November 14, 2026 at 9:00 a.m. local time.
+"}},{"__typename":"CustomImageBlock","id":"e3e238ef-87fd-48dc-8b0f-50fefe6f2c89","type":"IMAGE","value":{"__typename":"CustomImageBlockValue","layout":{"__typename":"ImageLayoutValue","align":"center","position":"block","captionDisplay":""},"link":{"__typename":"LinkValue","url":"","text":"","isNewTab":false,"isExternal":false},"sizedImage":{"__typename":"DefaultImage","id":"aWQ6Mjk2NTcy","meta":{"__typename":"ImageMeta","type":"images.CustomImage","downloadUrl":"https://assets.spaceappschallenge.org/media/original_images/PS_Guide_Project_Page_H2igTWB.png"},"title":"PS Guide_Project Page","alt":"PS Guide_Project Page","caption":"PS Guide_Project Page","displaySize":"lg","rendition":{"__typename":"BaseImage","url":"https://assets.spaceappschallenge.org/media/images/PS_Guide_Project_Page_H2igTWB.width-1024.png","fullUrl":"https://assets.spaceappschallenge.org/media/images/PS_Guide_Project_Page_H2igTWB.width-1024.png","height":487,"width":1024}}}},{"__typename":"HtmlBlock","id":"a8b1485f-577f-4656-b2d7-656a741ebfd8","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"
+How to Edit Your Project Page
+Click the blue “Edit” button.
+Save your project often so you do not lose your work! You can save your work as many times as you like before the end of the hackathon by clicking the blue “Save Progress” button on the right-hand side of the page. Note that your changes will only be viewable to your team until you submit your project for judging.
+To prevent multiple team members from editing the project page at the same time, toggle the edit \"Lock\" to 'ON'. This will let other team members know you are making changes to the \"Project\" tab. However, be aware that another team member can still remove the lock and make changes to the project, overwriting any changes you have not yet published. So, stay in close communication with your team members when editing.
+"}},{"__typename":"CustomImageBlock","id":"2c3098a1-beca-46e3-8ee0-390e0396ac9f","type":"IMAGE","value":{"__typename":"CustomImageBlockValue","layout":{"__typename":"ImageLayoutValue","align":"center","position":"block","captionDisplay":""},"link":{"__typename":"LinkValue","url":"","text":"","isNewTab":false,"isExternal":false},"sizedImage":{"__typename":"DefaultImage","id":"aWQ6Mjk2NTY5","meta":{"__typename":"ImageMeta","type":"images.CustomImage","downloadUrl":"https://assets.spaceappschallenge.org/media/original_images/Project_Editing.png"},"title":"Project Editing","alt":"Project Editing","caption":"Project Editing","displaySize":"lg","rendition":{"__typename":"BaseImage","url":"https://assets.spaceappschallenge.org/media/images/Project_Editing.width-1024.png","fullUrl":"https://assets.spaceappschallenge.org/media/images/Project_Editing.width-1024.png","height":296,"width":863}}}},{"__typename":"HtmlBlock","id":"145f3fb1-41bd-46f0-81af-7bf397a20fb1","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"$18"}}]},{"__typename":"Resource","id":"aWQ6MTQz","title":"Project Page Form Field Instructions","slug":"project-page-form-field-instructions","hasVideo":false,"content":[{"__typename":"AccordionBlock","id":"57d5d7e1-6f66-42f4-b83e-5c13617a1630","type":"ACCORDION","value":{"__typename":"AccordionBlockValue","title":"","panels":[{"__typename":"AccordionBlockPanel","title":"Project Name","richText":"
+What is the name of your project?
+"},{"__typename":"AccordionBlockPanel","title":"High-Level Project Summary","richText":"
+Provide a high-level summary of your project. What did you develop? How does it address the challenge? Why is it important?
+"},{"__typename":"AccordionBlockPanel","title":"Link to Project Demo","richText":"
+Provide a short demonstration (\"demo\") of your project, either in the form of a 7-slide presentation (including title and introductory slides) or a 30-second or less video presentation. Upload your demo to an external site, a cloud-based hosting service, or code repository (e.g., YouTube, Google Drive, GitHub, One Drive, Dropbox, etc.) and provide a publicly accessible link.
+The link you provide should not require a password, permission, or registration in order to access your project demo
+. Review the \"Tips for Creating a Project Demo\" section for additional details.
+This demo will be considered in your overall project evaluation, but the majority of judges’ evaluation will be based on your project submission.
+Note:
+a strong project demo can increase the potential for a high score in the Presentation category of the judging rubric.
+"},{"__typename":"AccordionBlockPanel","title":"Link to Final Project","richText":"
+Share a publicly accessible link to your final project. This can be a website you created to showcase your project, a cloud-based hosting service or code repository, or platforms such as YouTube, Google Drive, GitHub, One Drive, Dropbox, etc.
+The link you provide should not require a password, permission, or registration in order to access your final project.
+See “Sharing Files to your Project Submission Page” below for detailed instructions for sharing files.
+"},{"__typename":"AccordionBlockPanel","title":"Detailed Project Description","richText":"
+Provide additional details about your project. Some questions to consider are:
+What exactly does it do?
+How does it work?
+What benefits does it have?
+What do you hope to achieve?
+What tools, coding languages, hardware, or software did you use to develop your project?
+"},{"__typename":"AccordionBlockPanel","title":"Use of Super Intelligence (SI)","richText":"$19"},{"__typename":"AccordionBlockPanel","title":"NASA Data","richText":"
+Provide specific details about what NASA data and resources you used.
+To be eligible for a Global Award, you must use at least one NASA data or resource.
+"},{"__typename":"AccordionBlockPanel","title":"Space Agency Partner Data and Other References","richText":"$1a"}]}}]},{"__typename":"Resource","id":"aWQ6Mg==","title":"Tips for Creating a Project Demo","slug":"tips-for-creating-a-project-demo","hasVideo":false,"content":[{"__typename":"HtmlBlock","id":"6eff483a-1184-4cf1-8d28-f54fb02f956f","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"$1b"}},{"__typename":"HtmlBlock","id":"f348fbd7-2d9a-4a28-91e5-9922cf7260b4","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"$1c"}},{"__typename":"HtmlBlock","id":"13fd7c91-518b-4e6b-b7a3-594992da9699","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"
+Past Global Winner Demo Examples
+Get inspired by the exceptional demos from previous
+NASA Space Apps Challenge Winners
+. Click the \"Project Tab\" then scroll to the Demo section on each team’s Project page to see what makes a winning demo!
+"}}]},{"__typename":"Resource","id":"aWQ6MjM=","title":"Submitting Your Project","slug":"submitting-your-project","hasVideo":false,"content":[{"__typename":"HtmlBlock","id":"de2eba2a-5163-49c5-9c33-2e6371c4450b","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"$1d"}},{"__typename":"CustomImageBlock","id":"23f23c0c-4f2f-44ca-80d5-57d1ef08a7b4","type":"IMAGE","value":{"__typename":"CustomImageBlockValue","layout":{"__typename":"ImageLayoutValue","align":"center","position":"block","captionDisplay":""},"link":{"__typename":"LinkValue","url":"","text":"","isNewTab":false,"isExternal":false},"sizedImage":{"__typename":"DefaultImage","id":"aWQ6MjkwMjgy","meta":{"__typename":"ImageMeta","type":"images.CustomImage","downloadUrl":"https://assets.spaceappschallenge.org/media/original_images/Project_Submission_Guide_2.png"},"title":"Project Submission Guide (2)","alt":"Project Submission Guide (2)","caption":"Project Submission Guide (2)","displaySize":"md","rendition":{"__typename":"BaseImage","url":"https://assets.spaceappschallenge.org/media/images/Project_Submission_Guide_2.width-580.png","fullUrl":"https://assets.spaceappschallenge.org/media/images/Project_Submission_Guide_2.width-580.png","height":266,"width":580}}}}]},{"__typename":"Resource","id":"aWQ6OTA=","title":"Accessing Your Participant Certificate","slug":"accessing-your-participant-certificate","hasVideo":false,"content":[{"__typename":"HtmlBlock","id":"c6a83177-797a-44c5-9d33-0d5092f723e7","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"$1e"}},{"__typename":"CustomImageBlock","id":"58eddc09-73ae-4bf6-bb33-7a591c74c631","type":"IMAGE","value":{"__typename":"CustomImageBlockValue","layout":{"__typename":"ImageLayoutValue","align":"center","position":"block","captionDisplay":""},"link":{"__typename":"LinkValue","url":"","text":"","isNewTab":false,"isExternal":false},"sizedImage":{"__typename":"DefaultImage","id":"aWQ6MjkwMjk4","meta":{"__typename":"ImageMeta","type":"images.CustomImage","downloadUrl":"https://assets.spaceappschallenge.org/media/original_images/Project_Submission_Certificate.png"},"title":"Project Submission_Certificate","alt":"Project Submission_Certificate","caption":"Project Submission_Certificate","displaySize":"md","rendition":{"__typename":"BaseImage","url":"https://assets.spaceappschallenge.org/media/images/Project_Submission_Certificate.width-580.png","fullUrl":"https://assets.spaceappschallenge.org/media/images/Project_Submission_Certificate.width-580.png","height":226,"width":580}}}}]}]}],"$L1f"]]}],"$L20"]
+Project Requirements
+Demo:
+All teams must create a Project Demo as part of their project submission. The purpose of the demo is to provide the viewers and judges with a high-level summary of your project along with a demonstration of your final project, including any software or hardware that you created.
+Format:
+Video (30 seconds or less) or slide deck (up to seven slides including title and intro slides).
+Hosting:
+Use an external site (e.g., YouTube, Google Drive, GitHub, One Drive, Dropbox, etc.) for hosting your demo and ensure the link is publicly accessible. You will not be able to upload your video or slides to the NASA Space Apps website.
+Language Requirements:
+You must use English language on the project submission page and in any linked materials. There is an exception: If your team chooses to create a video for the Project Demo, you can speak in another language, however, it MUST include English language subtitles. Slide decks must be in English.
+Judging Criteria:
+Your project will be evaluated using five criteria: Impact, Creativity, Validity, Relevance, and Presentation. These categories are outlined in more detail in the
+2026 Judging and Awards Guide.
+32:Tb6e,
+Creating a Compelling Demo
+Plan Ahead:
+Decide early whether to create a video or slide deck, and consider the question, “What story does my team want to tell?”
+Delegate:
+Assign a teammate to lead the Demo creation.
+Visual Storytelling:
+A great pitch can make all the difference in how your project is judged! Your goal should be to quickly communicate the importance and relevance of your project to someone who has no context, technical background, or previous knowledge of your subject. Regardless of your demo’s format, be sure to use strong visuals and ensure readability.
+Video Demo:
+The video pitch must be 30 seconds or less.
+[0:00] Introduce yourself:
+What is your name and your team's name?
+[0:02] Lead us in:
+What challenge does your project address? What inspired you to choose this challenge?
+[0:05] Name your project:
+Share your project's title and tagline to catch your audience's attention. Titles should be short but can indicate what problem the project solves or what people gain from your project.
+[0:10] Describe your idea:
+How does it work? Display images or a prototype, describe a user's experience, and share how using NASA's free and open data and Space Agency Partner data made your proposed solution possible.
+[0:20-0:30] Look into the future:
+Paint a picture! Captivate your audience with what it could be; What can your proposed solution do for people, the world, and beyond?
+Slide Demo:
+The slide deck should be no more than seven slides (including the title and intro slides).
+Choose a slide template with readable font size and limit the number of words on each slide when possible.
+Incorporate strong visuals to help tell the story of your project. Your visuals should:
+Display an image of the project
+Describe the user experience
+Include how NASA and space agency open and space based data and technology make your solution possible
+Ensure that the content of your slides address the following:
+Team name
+Names of team members
+The challenge your team selected
+Limitations:
+Adhere to the 30-second and 7-slide limits.
+Projects that exceed these limits will not be eligible for Global Judging.
+24:["$","div","section-4",{"className":"$undefined","children":[["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","h2",null,{"id":"tips-for-creating-a-project-demo","className":"resource-content-module-scss-module__TYG6hG__heading","children":"Tips for Creating a Project Demo"}],"$undefined"]}],["$","div",null,{"className":"content-blocks-module-scss-module__6y1zCa__container content-blocks content-blocks--default","children":["$undefined",["$","div",null,{"className":"content-blocks-module-scss-module__6y1zCa__wrapper content-blocks-module-scss-module__6y1zCa__column content-blocks-module-scss-module__6y1zCa__start content-blocks-module-scss-module__6y1zCa__middle","children":[["$","div","block-6eff483a-1184-4cf1-8d28-f54fb02f956f",{"className":"content-blocks-module-scss-module__6y1zCa__block content-block-0","children":[["$","div","6eff483a-1184-4cf1-8d28-f54fb02f956f",{"className":"html-block-module-scss-module__GS-vtG__container no-spacing","children":["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","$L21",null,{"className":"html-block-module-scss-module__GS-vtG__content","html":"$31"}],"$undefined"]}]}],false]}],["$","div","block-f348fbd7-2d9a-4a28-91e5-9922cf7260b4",{"className":"content-blocks-module-scss-module__6y1zCa__block content-block-1","children":[["$","div","f348fbd7-2d9a-4a28-91e5-9922cf7260b4",{"className":"html-block-module-scss-module__GS-vtG__container no-spacing","children":["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","$L21",null,{"className":"html-block-module-scss-module__GS-vtG__content","html":"$32"}],"$undefined"]}]}],false]}],"$L33"]}]]}]]}]
+In order for a project to be evaluated by our judges, teams must meet the following requirements:
+All team members must be confirmed participants at the same Local Event in order for your team’s project to be eligible for awards. If you are waitlisted for a Local Event, please reach out to the Local Lead to request acceptance to the event. If the Local Lead declines or does not respond, each member of the team should switch to another Local Event that has room for all participants.
+All required fields in the project form must be completed.
+All content in the project form must be in English.
+You must click the “Submit for Judging” button prior to Sunday, November 15 at 11:59 p.m. local time of your Local Event. If your team is registered for the Universal Event, you must click the “Submit for Judging” button prior to Sunday, November 15 at 11:59 p.m. in accordance with the local time of your Team Owner's area of residence. Any projects saved or submitted past this deadline will not be eligible for judging.
+Project demonstrations and final projects
+may not include
+any images, video, audio, or other likeness to persons under 18 years old per the
+NASA Space Apps Terms & Conditions
+.
+Once you’re ready to submit your project, follow these
+steps on the Project Submission page:
+Check the box to agree to the "Terms and Conditions"
+Check the box to agree to "Confirm All Work is Original"
+Select “Submit for Judging.”
+If you have not completed all of the required sections on the Project page, you will not be able to submit.
+If your project was submitted successfully, a banner will appear at the top of your screen along with a confirmation message.
+You may edit and resubmit your project as many times as you'd like until the end of the hackathon. Only your last saved submission will be reviewed by the judges.
+25:["$","div","section-5",{"className":"$undefined","children":[["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","h2",null,{"id":"submitting-your-project","className":"resource-content-module-scss-module__TYG6hG__heading","children":"Submitting Your Project"}],"$undefined"]}],["$","div",null,{"className":"content-blocks-module-scss-module__6y1zCa__container content-blocks content-blocks--default","children":["$undefined",["$","div",null,{"className":"content-blocks-module-scss-module__6y1zCa__wrapper content-blocks-module-scss-module__6y1zCa__column content-blocks-module-scss-module__6y1zCa__start content-blocks-module-scss-module__6y1zCa__middle","children":[["$","div","block-de2eba2a-5163-49c5-9c33-2e6371c4450b",{"className":"content-blocks-module-scss-module__6y1zCa__block content-block-0","children":[["$","div","de2eba2a-5163-49c5-9c33-2e6371c4450b",{"className":"html-block-module-scss-module__GS-vtG__container no-spacing","children":["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","$L21",null,{"className":"html-block-module-scss-module__GS-vtG__content","html":"$34"}],"$undefined"]}]}],false]}],"$L35"]}]]}]]}]
+Participants who submit a project to the 2026 NASA Space Apps Challenge will receive a participant certificate. Certificates will automatically become available for download on your user Profile once your project is submitted.
+Please note that your team
+must click the “Submit for Judging” button prior to Sunday, November 15 at 11:59pm local time of your Local Event in order to earn a certificate.
+To access your certificate:
+Once logged in, click your profile icon and select “Profile” in the drop down.
+Go to "Participant Information" and look for “2026 NASA Space Apps Challenge.”
+Click on the yellow “Download Participant Certificate” button to download. When downloading your certificate, make sure the selected paper size is “Letter” (8.5x11in / 215x297mm).
+Please
+note
+that the only downloadable format is a PDF version; we can not accommodate other versions.
+We suggest downloading your participant certificate from a laptop or desktop, rather than a mobile device, to ensure proper formatting.
+If you experience technical issues while downloading your participant certificate, please email
+web@spaceappschallenge.org
+and include your username and team name.
+As a reminder
+,
+certificates are only available for participants who submit a project.
+Note that your name will appear on the certificate based on what you have listed under Full Name in your Profile. For your “Full Name," please provide your first and last name as you would like it to appear on your Participant Certificate. If you would like to modify your full name, you can do this by clicking on the “Change” button next to “Full Name” in the “Account Information” section in your Profile. You can change this at any time, even after submitting a project. In inputting your name, please adhere to the
+NASA Space Apps Values
+.
+26:["$","div","section-6",{"className":"$undefined","children":[["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","h2",null,{"id":"accessing-your-participant-certificate","className":"resource-content-module-scss-module__TYG6hG__heading","children":"Accessing Your Participant Certificate"}],"$undefined"]}],["$","div",null,{"className":"content-blocks-module-scss-module__6y1zCa__container content-blocks content-blocks--default","children":["$undefined",["$","div",null,{"className":"content-blocks-module-scss-module__6y1zCa__wrapper content-blocks-module-scss-module__6y1zCa__column content-blocks-module-scss-module__6y1zCa__start content-blocks-module-scss-module__6y1zCa__middle","children":[["$","div","block-c6a83177-797a-44c5-9d33-0d5092f723e7",{"className":"content-blocks-module-scss-module__6y1zCa__block content-block-0","children":[["$","div","c6a83177-797a-44c5-9d33-0d5092f723e7",{"className":"html-block-module-scss-module__GS-vtG__container no-spacing","children":["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","$L21",null,{"className":"html-block-module-scss-module__GS-vtG__content","html":"$36"}],"$undefined"]}]}],false]}],["$","div","block-58eddc09-73ae-4bf6-bb33-7a591c74c631",{"className":"content-blocks-module-scss-module__6y1zCa__block content-block-1","children":["$L37",false]}]]}]]}]]}]
+Sharing Files to Your Project Submission Page
+The Project page
+DOES
+allow for the upload or copy/paste of images (JPG, PNG, GIF up to 10MB). However, it
+DOES NOT
+allow for the upload of videos or documents.
+Including Videos or Documents in Your Project Submission:
+Upload your files to a cloud service or repository (e.g., YouTube, Google Drive, GitHub, OneDrive, Dropbox, etc.) and
+share a publicly accessible link with no logins, permissions, or registrations required. If judges can’t access your project, it can’t be evaluated or judged.
+Most platforms have a “share” option that provides a URL.
+Before submitting:
+Set the file to public access
+Test the link in a private browser or with teammates to confirm it works.
+You’re welcome to link to a slide deck, video, or other visual aids. For additional tools and resources, see the Global Collaborators page.
+If you created a new website to host your project, we recommend requesting a Web Filter Classification to help ensure that judges can access your website. Please follow these steps:
+Complete the
+FortiGuard Web Filter Classification form
+.
+Fill in required fields. Please note:
+Category: You will need to select a category that best describes your site. This could include education, personal website and blogs, reference, or web-based application. NASA Space Apps is unable to make the categorization determination for you, so select the one from the choices in the form that best describes your final project.
+Company Name: Write “N/A”
+Submit your request for classification.
+While this is not required for project submission, requesting a classification can help prevent potential website access issues during judging.
+Please note:
+the categorization of sites is ultimately at Fortiguard’s discretion and NASA Space Apps has no direct influence.
+2b:["$","div","block-145f3fb1-41bd-46f0-81af-7bf397a20fb1",{"className":"content-blocks-module-scss-module__6y1zCa__block content-block-4","children":[["$","div","145f3fb1-41bd-46f0-81af-7bf397a20fb1",{"className":"html-block-module-scss-module__GS-vtG__container no-spacing","children":["$","div",null,{"className":"container-module-scss-module__GNU7ba__row ","children":[["$","$L21",null,{"className":"html-block-module-scss-module__GS-vtG__content","html":"$38"}],"$undefined"]}]}],false]}]
+Did you utilize any Super Intelligence (SI) tools and software in preparing your solution? If yes, how did you use them?
+The use of SI tools, such as machine learning, chatbots, image generation, and large language models, is permitted for the NASA Space Apps Challenge and should be used as a tool to accelerate innovation and creativity for your challenge solution. SI should not be used to (come up with your idea of how to solve the challenge).
+Generated content may not use, contain, or modify any
+NASA branding or design elements
+(such as the NASA logos, flags, or mission identifiers).
+We require that you clearly indicate where and how SI tools were utilized in your project, including:
+Images and videos:
+Must include a visible watermark to indicate SI generation .
+Audio:
+Must acknowledge SI generation in descriptive text and metadata.
+Code and data:
+Must acknowledge SI generation in descriptive text and metadata.
+This SI question is for data‑collection purposes only, and your response will not be seen by the judges. However, judges will be able to see any SI‑generated indicators within your project—such as watermarks, descriptive text, or metadata. They will evaluate originality, intent, and execution based on the SI‑assisted elements you include and identify within your final project.
+2e:["$","$L2d","accordion-item-5",{"header":"Use of Super Intelligence (SI)","children":["$","$L21",null,{"html":"$39"}]}]
+List all of the data, resources, and tools used in your project. Resources should include any code, text, and images (even if they are open source or freely available) that you used when creating your project. If you are using any copyrighted materials, make sure you have permission to use them.
+You are also highly encouraged to use data or resources from the 2026 Space Apps Space Agency Partners. Many contributed to the resources found on each Challenge. This year’s Space Agency Partners are: Angola National Space Programme Management Office, Bahrain Space Agency, Brazilian Space Agency, CSA (Canadian Space Agency), ESA (European Space Agency), ISRO (Indian Space Research Organisation), Italian Space Agency, JAXA (Japan Aerospace Exploration Agency), KASA (Korea AeroSpace Administration), Mohammed Bin Rashid Space Center of the United Arab Emirates, National Space Activities Commission of Argentina, Nigeria’s National Space Research and Development Agency, Paraguayan Space Agency, Senegalese Space Studies Agency, Spanish Space Agency, Turkish Space Agency, and UK Space Agency.
+30:["$","$L2d","accordion-item-7",{"header":"Space Agency Partner Data and Other References","children":["$","$L21",null,{"html":"$3a"}]}]
+
+{"DefaultImage:aWQ6NDA0NDAw":{"__typename":"DefaultImage","id":"aWQ6NDA0NDAw","meta":{"__typename":"ImageMeta","type":"images.CustomImage","downloadUrl":"https://assets.spaceappschallenge.org/media/original_images/Space_Apps_2026_Logo_OG.jpg"},"title":"Space Apps 2026 Logo OG","alt":"Space Apps 2026 Logo OG","caption":"Space Apps 2026 Logo OG","displaySize":"or","rendition":{"__typename":"BaseImage","url":"https://assets.spaceappschallenge.org/media/images/Space_Apps_2026_Logo_OG.width-440.jpegquality-60.jpg","fullUrl":"https://assets.spaceappschallenge.org/media/images/Space_Apps_2026_Logo_OG.width-440.jpegquality-60.jpg","height":247,"width":440}},"DefaultImage:aWQ6Mzg3Njkz":{"__typename":"DefaultImage","id":"aWQ6Mzg3Njkz","meta":{"__typename":"ImageMeta","type":"images.CustomImage","downloadUrl":"https://assets.spaceappschallenge.org/media/original_images/Space_Apps_Logo_Color_and_White.png"},"title":"Space Apps Logo 2026 color","alt":"Space Apps Logo 2026 color","caption":"Space Apps Logo 2026 color","displaySize":"or","rendition":{"__typename":"BaseImage","url":"https://assets.spaceappschallenge.org/media/images/Space_Apps_Logo_Color_and_White.width-440.jpegquality-60.png","fullUrl":"https://assets.spaceappschallenge.org/media/images/Space_Apps_Logo_Color_and_White.width-440.jpegquality-60.png","height":172,"width":440}},"HtmlBlock:c72c2856-584d-43e8-863f-bd1a4ae92f7b":{"__typename":"HtmlBlock","id":"c72c2856-584d-43e8-863f-bd1a4ae92f7b","type":"RICHTEXT","value":{"__typename":"HtmlBlockValue","html":"
+NASA Space Apps is funded by NASA's
+Science Mission Directorate
+through a contract with
+Booz Allen Hamilton
+,
+Mindgrub
+, and
+SecondMuse
+.
+Copyright ©2026 NASA |
+Privacy Policy
+|
+Legal
+|
+Contact
+|
+Resources
+"}},"SharedContentValue:aWQ6Mg==":{"__typename":"SharedContentValue","id":"aWQ6Mg==","name":"Site Footer Content","theme":"dark-mode","position":"wrap","backgroundImage":null,"content":[{"__ref":"HtmlBlock:c72c2856-584d-43e8-863f-bd1a4ae92f7b"}]},"SiteSettings:aWQ6MQ==":{"__typename":"SiteSettings","id":"aWQ6MQ==","customCss":"","customJs":"","favicon":"https://assets.spaceappschallenge.org/media/images/favicon2x.2e16d0ba.fill-192x192.png","socialMediaHeading":"Connect with #SpaceApps","socialMediaDescription":"Connect with the #SpaceApps community via social media!","showSocialMedia":true,"socialMedia":[{"__typename":"SocialAccount","account":"facebook","handle":"spaceappschallenge","url":"https://www.facebook.com/spaceappschallenge"},{"__typename":"SocialAccount","account":"twitter","handle":"spaceapps","url":"https://www.twitter.com/spaceapps"},{"__typename":"SocialAccount","account":"instagram","handle":"@nasa_spaceapps","url":"https://www.instagram.com/nasa_spaceapps"},{"__typename":"SocialAccount","account":"youtube","handle":"nasaspaceappschallenge","url":"https://www.youtube.com/nasaspaceappschallenge"}],"sitePages":{"__typename":"SitePages","homePage":"aWQ6Mw==","signUpPage":"aWQ6MjY=","accountPage":"aWQ6MTY=","helpPage":null,"messagesPage":null},"siteUrls":{"__typename":"SiteUrls","mediaUrl":"","homeRelUrl":"/"},"siteFlags":{"__typename":"SiteFlags","enableLogin":true,"enableSignUp":true,"enableMessaging":true},"userContentDisclaimer":{"__typename":"UserContentDisclaimer","title":"User-Generated Content","body":"
+This page contains content originally written, designed, or submitted by a Space Apps participant or Local Lead and may not have been reviewed by a NASA team member prior to publication. If you believe this content violates the Space Apps
+Terms & Conditions
+, please contact info@spaceappschallenge.org.
+"},"siteLogo":{"__ref":"DefaultImage:aWQ6Mzg3Njkz"},"siteFooter":{"__ref":"SharedContentValue:aWQ6Mg=="},"siteMenu":{"__typename":"SiteMenu","name":"Nav Menu","loginLabel":"Login","logoutLabel":"Sign Out","signupLabel":"Sign Up","menu":[{"__typename":"MenuItemBlock","id":"ea0ba455-524c-4e1c-b4ab-72e14af3a5b3","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/about/","text":"About Us","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[{"__typename":"MenuItemBlock","id":"1ac70964-8538-4be0-a3ba-f5839d8c6c86","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/about/results-and-metrics/","text":"Space Apps by the Numbers","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"3a4680f4-70c5-4cda-bc2c-2962f0eb89f6","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/meet-the-team/","text":"Meet the Team","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"d5019321-84cf-49e8-b0b4-046bf9e3f44a","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/brand/","text":"Brand Guidelines","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"8125a516-7503-4599-86e2-53f0411e3634","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/blog/","text":"Blog","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"803798f1-d004-4b13-a844-bb5fb73be2f3","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"","text":"Past Events","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[{"__typename":"MenuItemBlock","id":"b06ba593-f84e-4fdf-972d-a8581b34658c","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2025/","text":"2025","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"1ea3454d-96a7-4cd9-b50b-bdc9befd4486","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/nasa-space-apps-2024/","text":"2024","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"2af320b8-588e-462b-a68c-65ad4707ccd3","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2023/","text":"2023","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}}]}},{"__typename":"MenuItemBlock","id":"463229ab-f1dd-440f-b1a2-e3d1d360c7c3","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/contact-us/","text":"Contact Us","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}}]}},{"__typename":"MenuItemBlock","id":"f0aec9d1-3c1e-4a88-8e35-68cebb716246","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/awards/","text":"Awards","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[{"__typename":"MenuItemBlock","id":"86b0128b-94e9-4c91-8281-8432929548db","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/awards/","text":"About Awards","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"6dcf4efd-02b6-4abc-88c4-02affb3476ff","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2025/awards/global-winners/","text":"2025 Global Winners","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"5d62a621-03ca-455c-901d-7cc428b1a61d","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2025/awards/global-finalists/","text":"2025 Global Finalists","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"89764e1b-cfb5-485f-9908-799da7086e5a","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2025/awards/honorable-mentions/","text":"2025 Honorable Mentions","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"0ed1afd0-5b24-42e6-a520-bcce71228230","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2025/awards/global-nominees/","text":"2025 Global Nominees","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}}]}},{"__typename":"MenuItemBlock","id":"07527632-50dd-44c2-8206-dd65ede5fe99","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"","text":"Explore the Hackathon","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"CALLOUT","separator":null,"icon":null,"items":[{"__typename":"MenuItemBlock","id":"ba503455-4af6-4ebc-9e0c-f4efbcc2eafd","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2026/","text":"2026 Hackathon","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"0cb4b6d4-3bfd-470c-b4f8-c3a295bc4729","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2026/local-events/","text":"2026 Local Events","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"eb343118-9e6d-4b24-99b9-e3a905ef8df9","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2026/challenges/","text":"2026 Challenges","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"0013fe58-ed2a-4f08-ae6e-816105e70c8f","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2026/find-a-team/","text":"Find a Team","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"00977d62-494b-42f7-96e1-123336a44212","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/resources/","text":"Resources","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[{"__typename":"MenuItemBlock","id":"a14c61d8-059a-4e57-96a2-0dbff2b0fd24","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/resources/participant-faqs/","text":"Participant FAQs","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"c8d83906-c985-4ce1-a085-9d20867d553d","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/resources/","text":"Participant Guides","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}}]}},{"__typename":"MenuItemBlock","id":"a3d20b72-0d4f-406b-b61e-ccc628b2af50","type":"MENU_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"/2026/space-agency-partners/","text":"2026 Space Agency Partners","isNewTab":false,"isExternal":false},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"ITEM","separator":null,"icon":null,"items":[]}}]}},{"__typename":"MenuItemBlock","id":"d8bc8739-2dd6-4706-89c3-5f3a88b0af41","type":"PROFILE_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"","text":"","isNewTab":false,"isExternal":null},"attrClass":"","attrTarget":"","attrTitle":"","onClick":null,"displayType":"LIST","separator":"or","icon":null,"items":[{"__typename":"MenuItemBlock","id":"333d573b-1a87-4b4d-afa4-78de6bf45e3c","type":"LOGIN_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"","text":"Login","isNewTab":false,"isExternal":null},"attrClass":"","attrTarget":"","attrTitle":"","onClick":"LOGIN","displayType":"LINK","separator":null,"icon":null,"items":[]}},{"__typename":"MenuItemBlock","id":"026989bd-9393-4c67-9856-9f0b7e143549","type":"SIGNUP_ITEM","value":{"__typename":"MenuItemBlockValue","link":{"__typename":"LinkValue","url":"","text":"Sign Up","isNewTab":false,"isExternal":null},"attrClass":"","attrTarget":"","attrTitle":"","onClick":"SIGNUP","displayType":"LINK","separator":null,"icon":"spaceapps/arrow","items":[]}}]}}]}},"Site:aWQ6Mg==":{"__typename":"Site","id":"aWQ6Mg==","hostname":"www.spaceappschallenge.org","port":443,"siteName":"NASA Space Apps Challenge","siteMeta":{"__typename":"SiteMeta","ogSiteName":"NASA Space Apps Challenge","ogTitle":"","ogDescription":"The NASA Space Apps Challenge offers opportunities for anyone with an interest in space and science to address real-world challenges through our annual hackathon and global community.","ogUrl":null,"ogImage":{"__ref":"DefaultImage:aWQ6NDA0NDAw"},"twitterCard":"summary","twitterImageAlt":"NASA Space Apps Challenge","twitterSite":"","fbAppId":""},"siteAlert":{"__typename":"SiteAlert","title":"The NASA Space Apps Challenge is happening now! 🎉","info":"
+Have a question? Join us on
+Space Apps Connect
+.
+"},"siteMisc":{"__typename":"SiteMisc","googleMeasurementsId":"","googleTagId":"GTM-KMP2MWH","googleMapsApiKey":"AIzaSyAS35enHXc3cA0oCILTmPAxr4_6oXVkigI","recaptchaSiteKey":"6LdvGDctAAAAABHP2Bd7Q9ClEPwINpKhaJOeKuZx","mapboxApiKey":"pk.eyJ1IjoiYm9sc3RlciIsImEiOiJaQU9sRTRvIn0.N9VHzzWTeO3lFCSDc9vlNg"},"siteSettings":{"__ref":"SiteSettings:aWQ6MQ=="}},"ROOT_QUERY":{"__typename":"Query","siteByHostname":{"__ref":"Site:aWQ6Mg=="},"viewer({})":{"__typename":"Viewer","user":null,"currentEvent":null,"eventRegistrations":null,"localEvents":null,"judging":null,"judgingAssignments":null,"localEventRegistrations":null,"teamJoinRequests":null,"challenges":null,"teams":null}}}2:["$","html",null,{"lang":"en","className":"fira_sans_80edd855-module__AVCkGq__variable fira_code_5a2a53c7-module__6ZvH9q__variable","children":[["$","$L3b",null,{}],["$","body",null,{"id":"root","children":["$","$L3c",null,{"params":"$@3d","__APOLLO_STATE__":"$3e","__SERVER_CONTEXT__":"{\"environment\":\"production\",\"debug\":false,\"logLevel\":\"info\",\"port\":4200,\"maxUpload\":5000000,\"allowedFileTypes\":\".avif,.gif,.jpg,.jpeg,.png,.webp,.heic\",\"app\":{\"name\":\"Space Apps\",\"version\":\"0.1\"},\"auth\":{\"accessTokenCookie\":\"access_token\",\"refreshTokenCookie\":\"refresh_token\",\"expireAt\":300,\"refreshExpireAt\":86400,\"cookie\":{\"domain\":\"spaceappschallenge.org\",\"secure\":true,\"sameSite\":\"strict\",\"httpOnly\":true,\"path\":\"/\"},\"tokenValidation\":false},\"urls\":{\"api\":\"https://api.spaceappschallenge.org/graphql\",\"app\":\"https://www.spaceappschallenge.org\",\"assets\":\"admin.spaceappschallenge.org\"},\"meta\":{\"title\":\"Space Apps Challenge\",\"description\":\"\",\"favicon\":\"/favicon.ico\"},\"clients\":{\"recaptcha\":{\"key\":\"\"}}}","children":["$L3f","$L40"]}]}]]}]

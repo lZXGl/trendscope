@@ -1,5 +1,10 @@
 # Persistent API deployment
 
+**Current recommendation:** [Render managed HTTPS service and exact costs](hosting_render.md).
+The Linux/systemd option below remains available. Browser auth is now exclusively
+through the [same-origin server proxy contract](live_api_contract.md), with no
+server Bearer secret delivered to public browsers.
+
 ## Chosen architecture and boundary
 
 Vercel continues to serve the existing static frontend. A single persistent Linux
@@ -60,7 +65,7 @@ The actual Gunicorn application/configuration has passed the local HTTP smoke te
 
 | Variable | Requirement |
 |---|---|
-| `JOB_API_ACCESS_TOKEN` | Required random shared judge/demo access secret, at least 32 characters; all HTTP POST/GET calls use Bearer auth |
+| `JOB_API_ACCESS_TOKEN` | Required random server-to-server proxy secret, at least 32 characters; never provided to a public browser |
 | `JOB_ALLOWED_ORIGINS` | Exact comma-separated frontend origins; empty allows curl but denies cross-origin browsers |
 | `JOB_STORE_DIR` | Durable state root, `/var/lib/trendscope` in the systemd unit |
 | `JOB_WORKER_MODE` | Explicit `cached` or `nasa`; no implicit live NASA mode |
@@ -77,10 +82,10 @@ AppEEARS for unmatched requests; it does not require an AOI registry. Never enab
 NASA mode on a copy of a state directory containing ambiguous submissions without
 reconciling those records first.
 
-The shared API token is intended for a controlled judge/demo audience, not anonymous
-public use. It grants access to this application's jobs, not NASA or repository
-credentials. Anonymous self-service would require a separately approved identity/
-abuse-control design. The implemented global rate, daily work and pending-queue
+The API token authenticates the trusted Vercel server proxy, never a public browser.
+The public demo is anonymous and bounded by hard global quotas; it does not claim
+user identity or private per-user access. See the current API contract for the
+server-only secret configuration. The implemented global rate, daily work and pending-queue
 limits persist on disk and avoid trusting spoofable proxy IP headers. Configure
 external access restrictions if the judge token cannot be kept within that audience.
 

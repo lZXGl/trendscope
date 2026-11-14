@@ -1,5 +1,8 @@
 # Arbitrary AOI backend integration verification
 
+Historical checkpoint. Current browser authentication and audit closures supersede
+this snapshot: see `docs/live_api_contract.md` and `reports/backend_audit_fixes.md`.
+
 ## Scope and preserved work
 
 Starting `origin/main`: **ce0b07becfb0952992fa002f48fdbb76cfe78a1d**.

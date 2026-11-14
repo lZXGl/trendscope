@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from nasa_fixture import manifest
 
 from src.pipeline.aoi_job import JobFailed, create_or_reuse_job, main, run_job
 from src.pipeline.aoi_request import AoiRequest, InvalidRequest
@@ -54,6 +55,7 @@ class FakeNasa:
                 + rows,
                 encoding="utf-8",
             )
+        meta.update(manifest(aoi, task_id, processed_dir, status=self.status, **kwargs))
         meta_path = processed_dir / f"{aoi['region_id']}_meta.json"
         meta_path.write_text(json.dumps(meta), encoding="utf-8")
         return meta_path
@@ -79,7 +81,7 @@ def test_same_area_gives_same_fingerprint_and_settings_change_it():
     assert base.job_id() != AoiRequest(bbox=(30.8, 30.7, 31.2, 31.2)).job_id()
     assert base.job_id() != AoiRequest(bbox=BBOX, allow_marginal=True).job_id()
     assert base.job_id() != AoiRequest(bbox=BBOX, end_date="12-31-2023").job_id()
-    assert base.job_id() != AoiRequest(bbox=BBOX, processing_version="2").job_id()
+    assert base.job_id() != AoiRequest(bbox=BBOX, processing_version="3").job_id()
 
 
 @pytest.mark.parametrize(

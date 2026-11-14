@@ -19,6 +19,7 @@ import sys
 import tempfile
 from collections.abc import Callable
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -160,6 +161,16 @@ def create_or_reuse_job(store: JobStore, request: AoiRequest) -> dict:
         "created_at": job["created_at"] if job else _now(),
         "updated_at": _now(),
     }
+    # A new processing fingerprint must not silently submit a second matching NASA task.
+    if job is None and request.processing_version == "2":
+        legacy = store.get_job(replace(request, processing_version="1").job_id())
+        if legacy is not None:
+            fresh.update(
+                status="failed",
+                nasa_task_id=legacy["nasa_task_id"],
+                error="Processing-version-1 record exists. Operator reconciliation "
+                "is required before version-2 processing; no new NASA task submitted.",
+            )
     return _save(store, fresh)
 
 
@@ -316,6 +327,14 @@ def _run_job(
                     "metadata_path": str(meta_path),
                 },
             )
+        from src.pipeline.nasa_manifest import validate_manifest
+
+        try:
+            validate_manifest(
+                meta, request, job_id, job["nasa_task_id"], processed_dir / f"{job_id}_ndvi.csv"
+            )
+        except (ValueError, TypeError, OSError) as exc:
+            raise JobFailed(f"Invalid NASA manifest: {exc}", retryable=False) from exc
         if meta.get("status") == "low_coverage":
             raise JobFailed("Too few usable satellite pixels in this area.", retryable=False)
         if meta.get("status") != "ok":
@@ -328,6 +347,16 @@ def _run_job(
                     status="processing",
                     stage="waiting_for_nasa",
                     error=None,
+                    retryable=False,
+                )
+            if (
+                meta.get("error_code") == "NASA_TASK_UNAVAILABLE"
+                or error == f"AppEEARS task {job['nasa_task_id']} failed with status: expired"
+            ):
+                raise JobFailed(
+                    f"NASA task {job['nasa_task_id']} expired or unavailable. "
+                    "Automatic retry blocked; "
+                    "operator reconciliation and explicit recovery are required.",
                     retryable=False,
                 )
             permanent = any(marker in error for marker in PERMANENT_NASA_ERRORS)

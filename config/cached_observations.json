@@ -13,10 +13,11 @@
         "end_date": "12-31-2024",
         "allow_marginal": false,
         "min_pixel_presence": 0.8,
-        "processing_version": "1"
+        "processing_version": "2"
       },
       "csv": "../data/processed/nile_delta_ndvi.csv",
       "sha256": "a2481b5ae93d18437efe0658df2f2466590424dd0504acf9fe01a03252e11e0a",
+      "compatibility_note": "Saved documentation records all 288 acquisitions; the requested-calendar denominator equals the original complete acquisition count. Raw provenance remains unverified. No CSV values were changed.",
       "source": "Existing measured Nile Delta development dataset; data/README.md",
       "nasa_task_id": null,
       "limitations": [

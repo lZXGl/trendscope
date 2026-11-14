@@ -28,3 +28,14 @@ Contract: `docs/live_api_contract.md`. Deployment: `docs/backend_deployment.md`.
 - Fixed daily job-quota bypass through repeated-slash API paths by sharing path normalization between admission and routing.
 - Regression tests reproduced the bypass before the fix; all 187 tests and Ruff now pass.
 - Hosting/domain selection is still missing. No deployment or NASA operations have been started.
+
+## Independent audit fixes — 2026-11-14
+
+- A09: exact fetched manifest product/layers/AOI/task/window/QA plus CSV checksum verified before statistics.
+- A10: pixel presence uses all requested months, unchanged .8/Good-only QA; processing version 2, no silent reuse of version-1 jobs.
+- A11/A27: corrupt records preserved with raw bytes/hash in quarantine; same ID blocked, unrelated jobs continue.
+- A12: expired/error/404/410 task IDs terminal; no automatic replacement or infinite retry.
+- Browser contract: VITE_JOB_API_BASE_URL=/api, Vercel server proxy injects Bearer; no browser token.
+- Prepared Render settings and cost estimate in docs/hosting_render.md, no deployment.
+
+Final audit-fix verification: 226 pytest tests, Ruff, actionlint and measured build passed; cached Gunicorn returns 288 real months under processing version 2. Frontend agent confirmed same-origin /api with no browser Bearer. Public deployed acceptance remains open.

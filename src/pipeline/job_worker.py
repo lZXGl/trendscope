@@ -194,24 +194,24 @@ class JobWorker:
 
     def _consume(self):
         while not self.stopping.is_set():
-            for path in sorted((self.store.root / "jobs").glob("aoi_*.json")):
+            for job in self.store.iter_jobs():
+                job_id = job["job_id"]
                 if self.stopping.is_set():
                     break
                 try:
-                    job = self.store.get_job(path.stem)
                     if (
                         job["status"] not in {"queued", "processing"}
-                        or self.due.get(path.stem, 0) > time.monotonic()
+                        or self.due.get(job_id, 0) > time.monotonic()
                     ):
                         continue
                     # Includes cached processing, so two consumers cannot calculate it twice.
-                    with self.store.locked(path.stem, execution=True, timeout=0):
-                        job = self._execute(path.stem)
+                    with self.store.locked(job_id, execution=True, timeout=0):
+                        job = self._execute(job_id)
                     if job["status"] == "processing":
-                        self.due[path.stem] = time.monotonic() + self.retry_seconds
+                        self.due[job_id] = time.monotonic() + self.retry_seconds
                 except Timeout:
                     continue
                 except Exception as exc:
-                    LOG.error("Cannot recover %s (%s)", path.stem, type(exc).__name__)
+                    LOG.error("Cannot recover %s (%s)", job_id, type(exc).__name__)
             self.wake.wait(1)
             self.wake.clear()

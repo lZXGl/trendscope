@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from nasa_fixture import manifest
 
 from src.pipeline import analysis
 from src.pipeline.aoi_job import create_or_reuse_job, main, run_job, validate_cached_result
@@ -49,7 +50,7 @@ class CachedObservations:
         df["region"] = aoi["region_id"]
         df.to_csv(processed_dir / f"{aoi['region_id']}_ndvi.csv", index=False)
         path = processed_dir / f"{aoi['region_id']}_meta.json"
-        path.write_text(json.dumps({"status": "ok", "aoi": aoi}))
+        path.write_text(json.dumps(manifest(aoi, task_id, processed_dir, **kwargs)))
         return path
 
 

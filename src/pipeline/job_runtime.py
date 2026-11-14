@@ -21,7 +21,7 @@ from filelock import FileLock
 
 from src.pipeline.aoi_request import InvalidRequest
 from src.pipeline.job_api import normalise_path, parse_request, route
-from src.pipeline.job_store import LocalJobStore
+from src.pipeline.job_store import CorruptRecord, LocalJobStore
 from src.pipeline.job_worker import CachedObservations, JobWorker
 
 
@@ -52,6 +52,9 @@ class Application:
     def _request(self, env):
         method = env["REQUEST_METHOD"]
         path = normalise_path(env.get("PATH_INFO", "/"))
+        if method == "GET" and path == "/healthz":
+            alive = self.worker.thread is not None and self.worker.thread.is_alive()
+            return (200, {"status": "ok"}) if alive else (503, {"error": "Worker unavailable."})
         origin = env.get("HTTP_ORIGIN")
         if origin and origin not in self.origins:
             return 403, {"error": "Origin is not allowed."}
@@ -92,12 +95,14 @@ class Application:
                     new = previous is None or (
                         previous["status"] == "failed" and previous["retryable"]
                     )
+                except CorruptRecord:
+                    raise
                 except (ValueError, InvalidRequest, UnicodeDecodeError):
                     pass  # The shared contract returns the validation error below.
                 if new:
                     pending = sum(
-                        json.loads(p.read_text())["status"] in {"queued", "processing"}
-                        for p in (self.store.root / "jobs").glob("aoi_*.json")
+                        job["status"] in {"queued", "processing"}
+                        for job in self.store.iter_jobs()
                     )
                     if limits["new_jobs"] >= self.new_jobs_per_day or pending >= self.max_pending:
                         self.store._write(limits_path, limits)
@@ -111,6 +116,9 @@ class Application:
         try:
             code, payload = self._request(env)
             data = b"" if code == 204 else json.dumps(payload, allow_nan=False).encode()
+        except CorruptRecord as exc:
+            code, payload = 409, {"error": str(exc)}
+            data = json.dumps(payload).encode()
         except Exception as exc:
             logging.getLogger(__name__).error("Job API unavailable (%s)", type(exc).__name__)
             code, payload = 503, {"error": "Job service storage or worker unavailable."}

@@ -11,6 +11,7 @@ from pathlib import Path
 from wsgiref.simple_server import make_server
 
 import pytest
+from nasa_fixture import manifest
 
 from src.pipeline.aoi_job import create_or_reuse_job, run_job
 from src.pipeline.aoi_request import AoiRequest
@@ -66,6 +67,7 @@ def hosted(tmp_path, *, runner=None, mode="cached", start=True, **limits):
         conn.close()
         return result
 
+    http.base_url = f"http://127.0.0.1:{server.server_port}"
     try:
         yield http, store, worker
     finally:
@@ -177,7 +179,7 @@ def controlled_fetch(token, aoi, *, processed_dir, **kwargs):
     observations["region"] = aoi["region_id"]
     observations.to_csv(processed_dir / f"{aoi['region_id']}_ndvi.csv", index=False)
     meta = processed_dir / "meta.json"
-    meta.write_text(json.dumps({"status": "ok"}))
+    meta.write_text(json.dumps(manifest(aoi, processed_dir=processed_dir, **kwargs)))
     return meta
 
 
@@ -194,7 +196,10 @@ def test_interrupted_nasa_job_and_pending_queue_resume_without_submission(tmp_pa
             path = processed_dir / "pending.json"
             path.write_text(
                 json.dumps(
-                    {"status": "failed", "error": "AppEEARS task saved-task timed out after 1800s"}
+                    {
+                        **manifest(args[1], task_id, processed_dir, status="failed", **kwargs),
+                        "error": "AppEEARS task saved-task timed out after 1800s",
+                    }
                 )
             )
             return path
@@ -236,7 +241,11 @@ def test_processing_failures_and_mock_never_return_success(tmp_path, kind):
         if kind == "qa":
             processed_dir.mkdir(parents=True, exist_ok=True)
             path = processed_dir / "rejected.json"
-            path.write_text('{"status":"low_coverage"}')
+            path.write_text(
+                json.dumps(
+                    manifest(args[1], processed_dir=processed_dir, status="low_coverage", **kwargs)
+                )
+            )
             return path
         return controlled_fetch(*args, processed_dir=processed_dir, **kwargs)
 
@@ -348,6 +357,7 @@ def test_explicit_missing_observations_survive_http_result(tmp_path):
         observations.loc[5, ["raw_value", "anomaly"]] = float("nan")
         observations.loc[5, ["valid_pixel_count", "valid_fraction"]] = 0
         observations.to_csv(csv, index=False)
+        path.write_text(json.dumps(manifest(args[1], processed_dir=processed_dir, **kwargs)))
         return path
 
     def runner(store, job_id):
@@ -403,7 +413,7 @@ def test_corrupt_storage_returns_json_unavailable_instead_of_crashing(tmp_path):
         _, job, _ = http("POST", payload=PAYLOAD)
         path = store.root / "jobs" / f"{job['job_id']}.json"
         path.write_text('{"broken":NaN}')
-        assert http("GET", f"/api/jobs/{job['job_id']}")[0] == 503
+        assert http("GET", f"/api/jobs/{job['job_id']}")[0] == 409
 
 
 def test_concurrent_manual_runner_cannot_mutate_active_worker_state(tmp_path):

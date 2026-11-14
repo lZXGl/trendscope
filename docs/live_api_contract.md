@@ -1,32 +1,52 @@
-# AOI HTTP integration contract
+# Final browser/API contract (A01/A26)
 
-Implementation: `src/pipeline/job_api.py` reuses the request-service contract from
-`origin/feat/backend` (`f367fb2`). `job_runtime.py` supplies authenticated WSGI hosting;
-`job_worker.py` runs existing processing asynchronously. No frontend edits are required
-for backend verification. This contract does not change either canonical JSON schema.
+## Browser configuration and authentication
 
-## Base URL and access
+**Frontend public build variable: `VITE_JOB_API_BASE_URL=/api`.** This matches
+`src/web/src/lib/jobClient.ts` on the geographic frontend branch. Do not use
+`VITE_API_BASE_URL` or put any token in a `VITE_` variable.
 
-Use an API **origin**, without `/api` or a trailing path: locally
-`http://127.0.0.1:8787`, eventually `https://<operator-configured-api-domain>`.
-**There is no deployed backend URL yet.** The frontend owner can set
-`VITE_API_BASE_URL` to this origin; it is a public build-time URL, not a secret.
-This is a handoff configuration name, not a claim that the current UI reads it.
+The public browser calls the same-origin Vercel Node functions:
 
-Every POST/GET requires `Authorization: Bearer <API access token>`. Supply this
-limited judge/demo token at runtime through the frontend's access mechanism or an
-existing trusted server proxy. Never bake it into a Vite environment variable,
-commit it, place it in a query string, or use an Earthdata/GitHub token as the API
-token. There is no anonymous unrestricted NASA workflow-dispatch endpoint.
+- `POST /api/jobs` → `api/jobs.js`
+- `GET /api/jobs/{job_id}` → `api/jobs/[job_id].js`
+- `GET /api/jobs/{job_id}/result` → `api/jobs/[job_id]/result.js`
 
-Backend `JOB_ALLOWED_ORIGINS` is a comma-separated list of exact frontend origins
-(including scheme and port for localhost). The server handles OPTIONS without auth
-and allows `GET, POST, OPTIONS` plus `Authorization, Content-Type`. Disallowed
-origins get 403. No wildcard or cookie authentication. Curl without Origin is allowed
-with a valid token. Rate controls apply globally to authenticated requests; forwarded
-IP headers are deliberately not trusted.
+Those handlers share `server/job-proxy.cjs`. They forward only these exact paths
+and methods to a fixed HTTPS backend origin. The proxy injects the Bearer secret
+from **server environment**, replacing rather than trusting browser Authorization.
+It never forwards upstream auth/cookie headers or redirects. Browser code sends
+no Bearer token and never receives the server secret. Do not prompt users for it,
+store it in localStorage, include it in URLs, or embed it in browser assets.
 
-## Submit
+Vercel **server-only** environment:
+
+| Variable | Exact meaning |
+|---|---|
+| `JOB_BACKEND_ORIGIN` | Generated backend origin, e.g. `https://<assigned>.onrender.com`, without `/api`, credentials, query or fragment |
+| `JOB_API_ACCESS_TOKEN` | Same random >=32-character secret configured on the Python backend; no `VITE_` prefix |
+| `JOB_PROXY_ALLOWED_ORIGINS` | Comma-separated exact public Vercel origins allowed to submit, including scheme; enumerate authorized preview origins explicitly |
+
+The proxy checks POST Origin and rejects cross-site requests, unknown paths,
+wrong methods, non-JSON/oversized bodies, redirects and invalid backend responses.
+It does not forward the browser's Origin or other headers to the Python service.
+The backend's browser CORS allowlist can therefore remain empty in this topology.
+Direct operator tools still require backend Bearer auth; direct unauthenticated
+backend requests still return 401. `GET /healthz` is a public worker-liveness probe,
+not a NASA-credential/readiness claim.
+
+This is a **public, anonymous, quota-bounded demonstration**, not end-user identity
+or private per-user job access. Origin checking is a browser cross-site control,
+not bot authentication. The backend durably enforces global request/work quotas
+(default 120 authenticated proxy requests/minute, 10 new/retried jobs/UTC day, 32
+pending jobs); identical pending/completed requests reuse their ID. Spoofing Origin
+cannot remove those limits. Configure Vercel firewall controls/budgets as required.
+Anonymous public NASA use must be explicitly enabled by the operator after hosted
+acceptance; cached-only mode is the initial deployment mode. No public GitHub
+workflow dispatch is exposed. If private users/jobs are required later, a separately
+reviewed user-identity mechanism must precede enabling that audience.
+
+## Canonical request
 
 `POST /api/jobs`, `Content-Type: application/json`, at most 8192 bytes:
 
@@ -39,46 +59,43 @@ IP headers are deliberately not trusted.
 }
 ```
 
-This is the existing `AoiRequest` format, not GeoJSON. `bbox` is required and means
-`[west, south, east, north]` in WGS84 degrees. Other fields default to the values
-above. Unknown fields, including QA overrides, are rejected. NDVI and its pixel
-reliability are the supported variable/layers; no separate `variable` field is accepted.
-Coordinates normalize to four decimals; each side must span 0.1–2.0 degrees,
-longitudes must satisfy -180 ≤ west < east ≤ 180, latitudes -90 ≤ south < north ≤ 90.
-Antimeridian-crossing boxes are unsupported. Valid date strings use MM-DD-YYYY,
-start < end, and this release supports 2001-01-01 through 2024-12-31. Results use
-calendar months, with no inference at submonthly resolution. The worker checks
-centre/corner land support; geometric acceptance does not promise usable NDVI or
-successful scientific analysis. No manual AOI registration is needed in NASA mode.
+Existing four-field AOI format; no new geometry/variable/auth field. `bbox` means
+WGS84 `[west,south,east,north]`, four numeric values, normalized to four decimals.
+Each side spans 0.1–2 degrees, with valid ordered lon/lat boundaries; antimeridian
+crossings are unsupported. `bbox` is required; other fields default to the example.
+Only MOD13A3.061 NDVI plus pixel reliability is supported. Dates are MM-DD-YYYY,
+start < end, between 2001-01-01 and 2024-12-31. Output is monthly, not submonthly.
+Unknown fields and QA overrides are rejected. Worker land/QA checks can still reject
+geometrically valid requests; no manual AOI registration is required in NASA mode.
 
-Production settings remain `allow_marginal=false`, `min_pixel_presence=0.8`,
-processing version `1`, Good-only pixel reliability 0, raw range [-2000,10000],
-fill -3000, scale 0.0001. The fingerprint includes the normalized geometry, exact
-dates, product, QA settings and processing version. Repeated requests reuse the
-same durable `aoi_<16 hex>` job ID. Different geometry with the same centre does
-not qualify for an observations-cache hit.
+Production QA remains Good-only reliability 0, raw [-2000,10000], fill -3000,
+scale 0.0001 and `min_pixel_presence=0.8`. **Processing version is now `2`**:
+presence uses every month in the requested calendar, with missing acquisitions
+counting as absence. Duplicate monthly layers are rejected and out-of-window/partial
+files cannot increase presence. This fixes the previous denominator; it does not
+lower the threshold. A request's full normalized geometry, exact dates, product,
+QA and version determine its `aoi_<16hex>` ID. Read the returned ID, never hardcode
+it. The earlier Nile example ID belonged to version 1.
 
-New work returns **202** after durable queue creation; no NASA login, submission,
-download or statistics run on the HTTP request thread. Existing pending/completed
-or permanent failed work returns **200** with its actual state. Explicit POST of a
-retryable failure requeues the same job and retains its NASA task identity. Daily
-admission limits count new work and explicit retryable-failure attempts; pending
-and completed duplicates do not consume another work allowance. Equivalent URL
-paths, including repeated or trailing slashes, share the same admission limits.
+## Responses, polling and results
+
+Schemas remain `schemas/job_status.schema.json` and `schemas/trend_result.schema.json`.
+POST returns 202 for durably queued work or 200 for reused pending/completed/permanent
+failed work. These are bare canonical job objects, not response envelopes:
 
 ```json
 {
-  "job_id": "aoi_cfcea6f2d695db5e",
+  "job_id": "aoi_1a02b370ad5c3963",
   "status": "queued",
   "stage": null,
   "request": {
-    "bbox": [30.7, 30.7, 31.3, 31.2],
+    "bbox": [30.7,30.7,31.3,31.2],
     "product": "MOD13A3.061",
     "start_date": "01-01-2001",
     "end_date": "12-31-2024",
     "allow_marginal": false,
     "min_pixel_presence": 0.8,
-    "processing_version": "1"
+    "processing_version": "2"
   },
   "nasa_task_id": null,
   "error": null,
@@ -89,118 +106,78 @@ paths, including repeated or trailing slashes, share the same admission limits.
 }
 ```
 
-Example timestamps above are illustrative. Response keys follow
-`schemas/job_status.schema.json` exactly. On completion the public `result_file`
-is `/api/jobs/<job_id>/result`; the internal file path remains `results/<job_id>.json`.
+Timestamps are illustrative. `GET /api/jobs/{job_id}` returns the same fields:
 
-## Poll and retrieve
-
-`GET /api/jobs/{job_id}` returns **200** with the same job object.
-
-| status | stage | Frontend behavior |
+| status | stage | Action |
 |---|---|---|
-| `queued` | `null` | Durable waiting work; poll at about 10 seconds with backoff |
-| `processing` | `checking_area` | Validating land support |
-| `processing` | `waiting_for_nasa` | NASA queued/running or waiting for another polling window; may take hours |
-| `processing` | `analysing` | Processing observations/statistics (cached mode also uses this stage) |
-| `completed` | `null` | Retrieve `result_file` using the API origin and the same Authorization header |
-| `failed` | last stage or `null` | Stop polling, show `error`; only offer explicit retry when `retryable=true` |
+| queued | null | Poll while waiting |
+| processing | checking_area | Wait for land validation |
+| processing | waiting_for_nasa | Remote queue/run may take hours; bounded poll expiry stays processing |
+| processing | analysing | Wait for QA/statistics/result validation |
+| completed | null | GET `result_file` on the Vercel origin through the proxy |
+| failed | last stage or null | Stop polling; show error; explicit retry only if retryable=true |
 
-A NASA task remaining pending after the client's 30-minute wait stays `processing`
-with `stage=waiting_for_nasa`, not `failed`. The serial worker retries that saved
-task after 300 seconds and preserves each attempt's processing metadata. An ambiguous
-NASA submission without a confirmed ID is a permanent blocked failure requiring
-operator reconciliation; repeated POST must not submit another task.
+Use sequential polling with backoff (about 10 seconds recommended); existing four-second
+polling is compatible at low load but shares the global 120/min budget. Honor 429
+Retry-After, retain the job ID and resume polling after backoff. HTTP 200 does not mean
+analysis completed. Browser refresh can POST the same request to recover its durable ID.
 
-`GET /api/jobs/{job_id}/result` returns **200** with the unwrapped, unchanged
-`schemas/trend_result.schema.json`: `metadata`, `series`, `trend`, `verdict`.
-`metadata.is_mock` is explicitly false. Region is the job ID; lat/lon are the bbox
-centre. `series` holds every requested month; missing `raw` and `anomaly` are JSON
-null. Never interpolate these into a continuous observed line. `trend.sens_slope`
-is NDVI/decade, not a percent or an annual value. Display `verdict.caveats` and
-retain the frozen engine's provisional inference limitations. Significance does
-not imply causation; nonsignificance is not ecological stability.
+Completed `result_file` is `/api/jobs/{job_id}/result`. Fetch that same-origin URL;
+do not prepend another `/api` or substitute `/data` assets. Its body is the unchanged
+canonical result (`metadata`, `series`, `trend`, `verdict`), `is_mock=false`, region
+matching the job ID, centre matching the bbox, and all requested calendar months.
+Null raw/anomaly values remain explicit missing observations. `sens_slope` is
+NDVI/decade. Bind result job ID, source, variable/units, coordinates and date window
+to the completed job. Exact extent comes from the persisted request and backend
+source validation, because the canonical result contains only the centre.
 
-Resolve `result_file` against the **API origin**, not the Vercel origin. All result
-requests need the same token; avoid an uncredentialed plain URL fetch. Completed
-results are served directly from durable storage without a static-site rebuild.
-They are not automatically added to the precomputed `/data/index.json` catalogue.
+Display scientific caveats: ordinary MK inference is provisional under dependence;
+significance is not causation and nonsignificance does not establish ecological
+stability. These remain development diagnostics, not calibrated scientific holdouts.
 
-## HTTP error handling
+## Errors and recovery
 
-All errors are JSON with `error`; no mock fallback or fabricated success.
+All failures are JSON with `error`; never substitute mock/example results.
+400 invalid input; 401 backend auth missing/invalid (proxy exposes safe 503 for its
+own backend auth failure); 403 invalid Origin; 404 missing job/result/route; 405 wrong
+method; 409 damaged/invalid stored record; 413/415 size/content type; 429 quota (obey
+Retry-After); 502 unavailable/invalid upstream; 503 service not configured/available.
+A failed job queried successfully normally returns HTTP 200 with `status=failed`.
 
-| HTTP | Meaning |
-|---|---|
-| 400 | Invalid JSON, unknown field, unsupported product/date/bbox, malformed job ID |
-| 401 | Missing/invalid API token |
-| 403 | Origin outside explicit CORS allowlist |
-| 404 | Unknown route/job, or result not yet available; consult job status |
-| 405 | Wrong HTTP method |
-| 409 | Stored result fails exact identity/schema/non-mock validation; do not display it |
-| 413 / 415 | Body too large/empty, or wrong content type |
-| 429 | Shared rate/admission quota; obey `Retry-After` and back off |
-| 502 | Runner dispatch failed; response also includes its stored failed `job` |
-| 503 | Storage/service unavailable; retain precomputed experience and show unavailable |
+Corrupt record bytes and their hashes are preserved under `quarantine/<id>/`; the
+affected job gets 409 until operator restoration, while unrelated work continues.
+Expired, deleted (404/410) or terminal-error NASA IDs become failed/nonretryable,
+retaining original task metadata; repeated POST cannot endlessly reuse them or
+submit replacements. Operator reconciliation is required. Ambiguous submission
+intent also blocks automatic resubmission. Version-1 records block automatic
+version-2 recreation for the same request until reconciled, preventing duplicate
+NASA submissions after the denominator correction.
 
-A failed **job** is normally HTTP 200 when queried, with `status=failed`, `error`
-and `retryable`. Never interpret HTTP 200 alone as completed analysis. An unavailable
-API, invalid result, or unsupported location must never trigger mock analysis.
-
-## Independently reproduce without NASA access
-
-From the repository root, no frontend server needed:
+## Offline reproduction and enablement
 
 ```bash
 uv sync --frozen --extra api
-uv run python -m scripts.smoke_job_api --state-dir "$(mktemp -d /tmp/trendscope-http.XXXXXX)"
+uv run pytest tests/test_audit_blockers.py tests/test_proxy_integration.py -q
+uv run python -m scripts.smoke_job_api --state-dir "$(mktemp -d)"
 ```
 
-This starts real Gunicorn, posts the exact measured Nile Delta support, polls,
-retrieves and schema-validates 288 real monthly observations, checks duplicate
-reuse/invalid product handling, writes `smoke_summary.json` and `http.log`, and
-stops its server. It removes NASA credentials from the subprocess environment.
-The original CSV is never rewritten. `config/cached_observations.json` binds its
-SHA-256 and full request. Original task ID/raw raster provenance is unavailable in
-this checkout and is recorded as a limitation, not invented.
+The proxy integration test starts actual local Node and Python HTTP servers, then
+submits/polls/retrieves measured cached observations with **no browser Bearer**.
+The Gunicorn smoke writes status/result/provenance plus summary/logs to the requested
+isolated directory. Original measured CSV and frozen statistics are unchanged;
+original baseline raster/task provenance remains unavailable in this checkout.
 
-For independent curl testing, keep this terminal running:
+Direct operator curl (never browser setup), with secrets loaded privately:
 
 ```bash
-export JOB_API_ACCESS_TOKEN="$(openssl rand -hex 32)"
-export JOB_WORKER_MODE=cached
-export JOB_CACHE_MANIFEST="$PWD/config/cached_observations.json"
-export JOB_STORE_DIR="$(mktemp -d /tmp/trendscope-curl.XXXXXX)"
-uv run python -m src.pipeline.job_api --port 8787
-```
-
-In another terminal, load the same API token privately, then:
-
-```bash
-API_BASE=http://127.0.0.1:8787
-curl --fail-with-body -sS "$API_BASE/api/jobs" \
-  -H "Authorization: Bearer $JOB_API_ACCESS_TOKEN" \
-  -H 'Content-Type: application/json' \
+curl --fail-with-body -sS "$JOB_BACKEND_ORIGIN/api/jobs" \
+  -H "Authorization: Bearer $JOB_API_ACCESS_TOKEN" -H 'Content-Type: application/json' \
   --data '{"bbox":[30.7,30.7,31.3,31.2],"product":"MOD13A3.061","start_date":"01-01-2001","end_date":"12-31-2024"}'
-curl --fail-with-body -sS "$API_BASE/api/jobs/aoi_cfcea6f2d695db5e" \
-  -H "Authorization: Bearer $JOB_API_ACCESS_TOKEN"
-# Once status is completed:
-curl --fail-with-body -sS "$API_BASE/api/jobs/aoi_cfcea6f2d695db5e/result" \
-  -H "Authorization: Bearer $JOB_API_ACCESS_TOKEN" > /tmp/trendscope-curl-result.json
-uv run python scripts/validate_schema.py /tmp/trendscope-curl-result.json
+# Then GET /api/jobs/{returned_job_id} and its completed result_file with the same header.
 ```
 
-Cached-only mode truthfully rejects uncached AOIs in the background. NASA mode
-supports arbitrary valid AOIs via the existing retrieval worker; it is not enabled
-by these demo commands. [Persistent-host setup](backend_deployment.md) describes
-server environment variables and the exact remaining deployment dependencies.
-
-## Enabling the frontend live-analysis action
-
-The frontend owner should wire the existing selection to this four-field POST,
-use the configured API origin plus runtime access token, poll only queued/processing
-jobs, and load the canonical result after completion. Enable the live action only
-after the API host passes authenticated HTTPS/CORS tests from the actual Vercel
-origin and NASA mode is configured. Until then keep verified precomputed results
-available and label on-demand processing unavailable. Cached-only demonstrations
-must disclose that only the exact configured observations are available.
+Public proxy curl uses the Vercel origin plus `Origin: <same Vercel origin>` and
+JSON Content-Type, with **no Authorization header**. Do not enable the UI live action
+until proxy/backend settings, public HTTPS, quotas and the composed cached request
+have passed on the actual deployed SHA. [Render setup/costs](hosting_render.md).
+No deployed end-to-end or fresh NASA success is claimed by local tests.

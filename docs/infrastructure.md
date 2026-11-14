@@ -30,8 +30,9 @@ Neither source observations nor frontend components are rewritten.
 The backend release branch now provides a locally tested authenticated Python HTTP
 service for `POST /api/jobs`, `GET /api/jobs/<id>` and `GET /api/jobs/<id>/result`.
 It runs on a separate persistent host; Vercel continues to serve static files and
-has no `/api/jobs` handler of its own. No public API has been deployed. Configure
-an explicit backend origin rather than sending jobs to Vercel's static namespace.
+now includes the backend-owned same-origin Node proxy handlers. No public API has
+been deployed. Set Vercel server-only JOB_BACKEND_ORIGIN/JOB_API_ACCESS_TOKEN and
+frontend VITE_JOB_API_BASE_URL=/api; never deliver the Bearer secret to a browser.
 See [the exact frontend API contract](live_api_contract.md) and
 [persistent host setup and blockers](backend_deployment.md). The verified
 precomputed experience remains available independently of that service.

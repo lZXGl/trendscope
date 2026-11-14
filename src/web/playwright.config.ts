@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
-const previewPort = Number(process.env.PREVIEW_PORT || 4173);
-const jobPort = Number(process.env.JOB_PORT || 4174);
+const previewPort = process.env.PREVIEW_PORT || "4273";
+const jobPort = process.env.JOB_PORT || "4274";
+process.env.PREVIEW_PORT = previewPort;
+process.env.JOB_PORT = jobPort;
 export default defineConfig({
   testDir: "tests/browser",
   workers: 1,

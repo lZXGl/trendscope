@@ -1,12 +1,23 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (() => {
+        let choice = 'system';
+        try { choice = localStorage.getItem('trendscope.appearance') || 'system'; } catch {}
+        const mode = choice === 'dark' || (choice !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        document.documentElement.dataset.mode = mode;
+        document.documentElement.dataset.theme = mode;
+        document.documentElement.dataset.astryxTheme = 'neutral';
+        document.documentElement.style.colorScheme = mode;
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>TrendScope — Earth System Trend Detective</title>
   </head>
-  <body class="bg-[#FAFAFA] text-[#0F172A] antialiased selection:bg-sky-100 selection:text-sky-950">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

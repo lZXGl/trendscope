@@ -1,10 +1,12 @@
 import { parseJob, parseResult, readJson } from "./contracts";
 import { loadResult } from "./dataLoader";
+import { assertJobContinuity, assertJobRequest, assertJobResult, assertResultPath, type AnalysisRequest } from "./jobIdentity";
 import type { AoiJobStatus, AoiSelection, TrendResult } from "../types/trend";
 
-// Public URL only. No token or credentials belong in a VITE_ environment value.
+// Public same-origin proxy path only. The proxy adds Bearer auth server-side.
+// No token or backend credentials belong in a VITE_ environment value.
 export const JOB_API_BASE = (import.meta.env?.VITE_JOB_API_BASE_URL ?? "").replace(/\/$/, "");
-export const LIVE_JOBS_ENABLED = Boolean(JOB_API_BASE);
+export const LIVE_JOBS_ENABLED = JOB_API_BASE === "/api";
 export const UNAVAILABLE_MESSAGE = "On-demand NASA processing is unavailable in this static release. The precomputed observed dataset remains available.";
 
 export interface SubmitJobResponse {
@@ -57,64 +59,60 @@ export function randomLandSeedAoi(seed: number): AoiSelection {
   };
 }
 
-export async function submitAnalysisJob(payload: {
-  bbox: [number, number, number, number];
-  product: string;
-  start_date: string;
-  end_date: string;
-}): Promise<SubmitJobResponse> {
+export async function submitAnalysisJob(payload: AnalysisRequest): Promise<SubmitJobResponse> {
   if (!LIVE_JOBS_ENABLED) return { mode: "unavailable", message: UNAVAILABLE_MESSAGE };
   validateRequest(payload);
+  let resp: Response;
   try {
-    const resp = await fetch(`${JOB_API_BASE}/jobs`, {
+    resp = await fetch(`${JOB_API_BASE}/jobs`, {
       signal: AbortSignal.timeout(15000),
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      cache: "no-store",
+      redirect: "error",
     });
-    if (resp.status === 404 || resp.status === 405) {
-      return {
-        mode: "unavailable",
-        message:
-          "Live NASA job API (/api/jobs) is not active in this static deployment. Select a pre-computed dataset or dispatch the GitHub Actions NASA AOI workflow.",
-      };
-    }
-    if (!resp.headers.get("content-type")?.includes("application/json")) {
-      return { mode: "unavailable", message: UNAVAILABLE_MESSAGE };
-    }
-    const data = await resp.json();
-    if (!resp.ok) {
-      return {
-        mode: "live",
-        message: typeof data?.error === "string" ? data.error : `Job request rejected (HTTP ${resp.status}).`,
-      };
-    }
-    return { mode: "live", job: parseJob(data) };
   } catch {
-    return {
-      mode: "unavailable",
-      message:
-        "Could not reach /api/jobs. Showing pre-computed NASA datasets only (no simulated results).",
-    };
+    return { mode: "unavailable", message: "Could not reach /api/jobs. Showing pre-computed NASA datasets only (no simulated results)." };
   }
+  if (resp.status === 401 || resp.status === 403) throw new Error(API_ACCESS_MESSAGE);
+  if (resp.status === 404 || resp.status === 405) {
+    return { mode: "unavailable", message: "Live NASA job API (/api/jobs) is not active in this static deployment. Select a pre-computed dataset." };
+  }
+  if (!resp.headers.get("content-type")?.includes("application/json")) {
+    return { mode: "unavailable", message: UNAVAILABLE_MESSAGE };
+  }
+  const data = await resp.json();
+  if (!resp.ok) {
+    return { mode: "live", message: typeof data?.error === "string" ? data.error : `Job request rejected (HTTP ${resp.status}).` };
+  }
+  const job = parseJob(data);
+  assertJobRequest(job, payload);
+  return { mode: "live", job };
 }
 
-export async function fetchJobStatus(jobId: string): Promise<AoiJobStatus> {
-  if (!/^aoi_[0-9a-f]{16}$/.test(jobId)) throw new Error("Invalid job identifier.");
-  const resp = await fetch(`${JOB_API_BASE}/jobs/${encodeURIComponent(jobId)}`, { signal: AbortSignal.timeout(15000) });
-  const job = parseJob(await readJson(resp));
-  if (job.job_id !== jobId) throw new Error("Status belongs to a different job.");
+export const API_ACCESS_MESSAGE = "Analysis service access was denied. Contact the service operator; no result has been substituted.";
+async function apiJson(path: string): Promise<unknown> {
+  const response = await fetch(path, { signal: AbortSignal.timeout(15000), cache: "no-store", redirect: "error" });
+  if (response.status === 401 || response.status === 403) throw new Error(API_ACCESS_MESSAGE);
+  return readJson(response);
+}
+
+export async function fetchJobStatus(expected: AoiJobStatus): Promise<AoiJobStatus> {
+  if (!/^aoi_[0-9a-f]{16}$/.test(expected.job_id)) throw new Error("Invalid job identifier.");
+  const job = parseJob(await apiJson(`${JOB_API_BASE}/jobs/${expected.job_id}`));
+  assertJobContinuity(job, expected);
   return job;
 }
 
-export async function fetchJobResult(resultFile: string): Promise<TrendResult> {
-  if (/^results\/[a-zA-Z0-9_-]+\.json$/.test(resultFile)) return loadResult(resultFile);
-  // Current backend branch documents this result endpoint. Never fetch an arbitrary URL.
-  if (!/^\/api\/jobs\/aoi_[0-9a-f]{16}\/result$/.test(resultFile)) {
-    throw new Error("Unsupported job result path.");
-  }
-  const origin = JOB_API_BASE.startsWith("http") ? new URL(JOB_API_BASE).origin : "";
-  return parseResult(await readJson(await fetch(`${origin}${resultFile}`, { signal: AbortSignal.timeout(15000) })));
+export async function fetchJobResult(job: AoiJobStatus): Promise<TrendResult> {
+  assertResultPath(job);
+  const resultFile = job.result_file!;
+  const result = resultFile.startsWith("results/")
+    ? await loadResult(resultFile)
+    : parseResult(await apiJson(resultFile));
+  assertJobResult(result, job);
+  return result;
 }
 
 export function validateRequest(payload: { bbox: number[]; product: string; start_date: string; end_date: string }) {
@@ -136,5 +134,10 @@ export function validateRequest(payload: { bbox: number[]; product: string; star
     }
     return time;
   };
-  if (parse(payload.start_date) >= parse(payload.end_date)) throw new Error("Start date must precede end date.");
+  const start = parse(payload.start_date);
+  const end = parse(payload.end_date);
+  if (start >= end) throw new Error("Start date must precede end date.");
+  if (start < Date.UTC(2001, 0, 1) || end > Date.UTC(2024, 11, 31)) {
+    throw new Error("Analysis dates must be within 2001–2024.");
+  }
 }

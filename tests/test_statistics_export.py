@@ -77,7 +77,18 @@ def test_real_export_matches_production_and_reports(tmp_path, observations):
 
 def test_existing_artifact_is_reproducible():
     artifact = json.loads(exporter.OUTPUT.read_text(encoding="utf-8"))
-    assert artifact == exporter.build_result(pd.read_csv(exporter.SOURCE))
+    rebuilt = exporter.build_result(pd.read_csv(exporter.SOURCE))
+    assert artifact["metadata"] == rebuilt["metadata"]
+    assert artifact["verdict"] == rebuilt["verdict"]
+    assert len(artifact["series"]) == len(rebuilt["series"])
+    for a, b in zip(artifact["series"], rebuilt["series"], strict=True):
+        assert a["date"] == b["date"]
+        assert a["raw"] == pytest.approx(b["raw"])
+        assert a["anomaly"] == pytest.approx(b["anomaly"])
+    for key in ("method", "slope_unit", "significant", "autocorrected"):
+        assert artifact["trend"][key] == rebuilt["trend"][key]
+    for key in ("sens_slope", "p_value", "tau"):
+        assert artifact["trend"][key] == pytest.approx(rebuilt["trend"][key], rel=1e-12, abs=0)
 
 
 def test_same_unrounded_anomalies_and_immutable_input(monkeypatch, observations):

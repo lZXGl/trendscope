@@ -12,6 +12,9 @@ import {
   makeBboxAround,
   randomLandSeedAoi,
   submitAnalysisJob,
+  LIVE_JOBS_ENABLED,
+  UNAVAILABLE_MESSAGE,
+  validateRequest,
 } from "./lib/jobClient";
 import type { AoiJobStatus, AoiSelection, TrendIndexItem, TrendResult } from "./types/trend";
 
@@ -23,15 +26,19 @@ const STAGE_LABELS: Record<NonNullable<AoiJobStatus["stage"]>, string> = {
 
 function toMmDdYyyy(isoDate: string): string {
   const [y, m, d] = isoDate.split("-");
-  return y && m && d ? `${m}-${d}-${y}` : "01-01-2001";
+  if (!y || !m || !d) throw new Error("Enter both valid dates.");
+  return `${m}-${d}-${y}`;
 }
 
 export function App() {
   const mainRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<TrendIndexItem[]>([]);
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [catalogueLoading, setCatalogueLoading] = useState(true);
+  const [loadingResult, setLoadingResult] = useState(false);
+  const jobGeneration = useRef(0);
   const [view, setView] = useState<"explore" | "compare">("explore");
   const [selectedFile, setSelectedFile] = useState<string>("");
+  const [datasetRevision, setDatasetRevision] = useState(0);
   const [activeResult, setActiveResult] = useState<TrendResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [customAoi, setCustomAoi] = useState<AoiSelection | null>(null);
@@ -43,25 +50,34 @@ export function App() {
   const [submittingJob, setSubmittingJob] = useState<boolean>(false);
 
   useEffect(() => {
-    loadIndex().then(({ items: loaded, usingFallback: fb }) => {
+    let cancelled = false;
+    loadIndex().then(loaded => {
+      if (cancelled) return;
       setItems(loaded);
-      setUsingFallback(fb);
       if (loaded[0]) setSelectedFile(loaded[0].file);
-    });
+    }).catch(err => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setCatalogueLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     if (!selectedFile) return;
     setError(null);
-    loadResult(selectedFile)
-      .then(setActiveResult)
-      .catch((err: Error) => setError(err.message));
-  }, [selectedFile]);
+    setActiveResult(null);
+    setLoadingResult(true);
+    loadResult(selectedFile).then(value => { if (!cancelled) setActiveResult(value); })
+      .catch(err => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoadingResult(false); });
+    return () => { cancelled = true; };
+  }, [selectedFile, datasetRevision]);
 
   useEffect(() => {
     if (!mainRef.current) return;
+    const cards = mainRef.current.querySelectorAll(".reveal-card");
+    if (!cards.length) return;
     const ctx = gsap.context(() => {
-      gsap.from(".reveal-card", {
+      gsap.from(cards, {
         y: 12,
         opacity: 0,
         duration: 0.35,
@@ -71,7 +87,7 @@ export function App() {
       });
     }, mainRef);
     return () => ctx.revert();
-  }, [view]);
+  }, [view, catalogueLoading]);
 
   const activeItem = useMemo(
     () => items.find((i) => i.file === selectedFile) ?? items[0],
@@ -85,6 +101,8 @@ export function App() {
   }, [items]);
 
   const handleRegionSelect = (region: string) => {
+    setDatasetRevision(value => value + 1);
+    jobGeneration.current += 1;
     setCustomAoi(null);
     setJobStatus(null);
     setJobNotice(null);
@@ -93,19 +111,22 @@ export function App() {
   };
 
   const handleSelectCustomAoi = (lat: number, lon: number) => {
+    jobGeneration.current += 1;
     setJobStatus(null);
     setJobNotice(null);
     setError(null);
+    const bbox = makeBboxAround(lat, lon, 0.5);
     setCustomAoi({
-      lat: Number(lat.toFixed(4)),
-      lon: Number(lon.toFixed(4)),
-      bbox: makeBboxAround(lat, lon, 0.5),
-      label: `Selected AOI (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`,
+      lat: (bbox[1] + bbox[3]) / 2,
+      lon: (bbox[0] + bbox[2]) / 2,
+      bbox,
+      label: `Selected AOI (${((bbox[1] + bbox[3]) / 2).toFixed(2)}°, ${((bbox[0] + bbox[2]) / 2).toFixed(2)}°)`,
       isRandom: false,
     });
   };
 
   const handleRandomRegion = () => {
+    jobGeneration.current += 1;
     setJobStatus(null);
     setJobNotice(null);
     setError(null);
@@ -114,61 +135,58 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!jobStatus || (jobStatus.status !== "queued" && jobStatus.status !== "processing")) {
-      return;
-    }
-    const timer = window.setInterval(async () => {
+    if (!jobStatus || !["queued", "processing"].includes(jobStatus.status)) return;
+    let cancelled = false;
+    let timer: number;
+    const generation = jobGeneration.current;
+    const poll = async () => {
       try {
         const updated = await fetchJobStatus(jobStatus.job_id);
-        setJobStatus(updated);
-        if (updated.status === "completed" && updated.result_file) {
-          const res = await fetchJobResult(updated.result_file);
-          setActiveResult(res);
-          setJobNotice(null);
+        if (cancelled || generation !== jobGeneration.current) return;
+        if (updated.status === "completed") {
+          const result = await fetchJobResult(updated.result_file!);
+          if (!cancelled && generation === jobGeneration.current) { setActiveResult(result); setJobStatus(updated); }
         } else if (updated.status === "failed") {
+          setJobStatus(updated);
           setError(updated.error || "NASA analysis job failed.");
+        } else {
+          setJobStatus(updated);
+          timer = window.setTimeout(poll, 4000);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to poll job status.");
+        if (!cancelled && generation === jobGeneration.current) {
+          setError(err instanceof Error ? err.message : "Job status unavailable.");
+          setJobNotice("Live status could not be confirmed. Polling stopped; the precomputed dataset remains available.");
+        }
       }
-    }, 4000);
-    return () => window.clearInterval(timer);
-  }, [jobStatus]);
+    };
+    timer = window.setTimeout(poll, 4000);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [jobStatus?.job_id, jobStatus?.status]);
 
   const handleSubmitAnalysis = async () => {
     if (!customAoi) return;
+    const generation = ++jobGeneration.current;
     setSubmittingJob(true);
     setError(null);
+    setJobStatus(null);
     setJobNotice(null);
-    const res = await submitAnalysisJob({
-      bbox: customAoi.bbox,
-      product: selectedProduct,
-      start_date: toMmDdYyyy(startDate),
-      end_date: toMmDdYyyy(endDate),
-    });
-    setSubmittingJob(false);
-
-    if (res.mode === "unavailable") {
-      setJobNotice(res.message ?? "Live job API unavailable.");
-      return;
-    }
-    if (res.message && !res.job) {
-      setError(res.message);
-      return;
-    }
-    if (res.job) {
+    try {
+      const payload = { bbox: customAoi.bbox, product: selectedProduct,
+        start_date: toMmDdYyyy(startDate), end_date: toMmDdYyyy(endDate) };
+      validateRequest(payload);
+      const res = await submitAnalysisJob(payload);
+      if (generation !== jobGeneration.current) return;
+      if (res.mode === "unavailable") { setJobNotice(res.message ?? UNAVAILABLE_MESSAGE); return; }
+      if (!res.job) { setError(res.message || "No job was returned by the service."); return; }
       setJobStatus(res.job);
-      if (res.job.status === "completed" && res.job.result_file) {
-        try {
-          const loaded = await fetchJobResult(res.job.result_file);
-          setActiveResult(loaded);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to load cached job result.");
-        }
-      } else if (res.job.status === "failed") {
-        setError(res.job.error || "NASA analysis job failed.");
-      }
-    }
+      if (res.job.status === "completed") {
+        const loaded = await fetchJobResult(res.job.result_file!);
+        if (generation === jobGeneration.current) setActiveResult(loaded);
+      } else if (res.job.status === "failed") setError(res.job.error || "NASA analysis job failed.");
+    } catch (err) {
+      if (generation === jobGeneration.current) setError(err instanceof Error ? err.message : "Analysis unavailable.");
+    } finally { setSubmittingJob(false); }
   };
 
   return (
@@ -203,11 +221,6 @@ export function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {usingFallback && (
-              <span className="hidden md:inline-block text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-                Previewing Mock Index
-              </span>
-            )}
             <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
               <button
                 type="button"
@@ -218,7 +231,7 @@ export function App() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <Compass className="w-3.5 h-3.5" />
+                <Compass className="hidden sm:block w-3.5 h-3.5" />
                 Explorer
               </button>
               <button
@@ -230,7 +243,7 @@ export function App() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <Columns2 className="w-3.5 h-3.5" />
+                <Columns2 className="hidden sm:block w-3.5 h-3.5" />
                 Compare
               </button>
             </div>
@@ -239,7 +252,9 @@ export function App() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
-        {view === "compare" ? (
+        {!LIVE_JOBS_ENABLED && <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">{UNAVAILABLE_MESSAGE}</p>}
+        {catalogueLoading ? <p role="status">Loading dataset catalogue...</p> : error && !items.length ? <div role="alert" className="p-4 text-rose-800">{error} No mock result has been substituted. Refresh to retry.</div> : !items.length ? <p>No observed datasets are currently published.</p> : null}
+        {!catalogueLoading && items.length > 0 && (view === "compare" ? (
           <CompareView items={items} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -279,7 +294,7 @@ export function App() {
                       <span className="font-semibold text-amber-950">{customAoi.label}</span>
                       <button
                         type="button"
-                        onClick={() => setCustomAoi(null)}
+                        onClick={() => { jobGeneration.current += 1; setCustomAoi(null); setJobStatus(null); setJobNotice(null); }}
                         className="text-[11px] text-amber-800 underline"
                       >
                         Clear
@@ -294,6 +309,7 @@ export function App() {
                           Start Date
                         </label>
                         <input
+                          aria-label="Start date"
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
@@ -305,6 +321,7 @@ export function App() {
                           End Date
                         </label>
                         <input
+                          aria-label="End date"
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
@@ -326,12 +343,12 @@ export function App() {
                     </div>
                     <button
                       type="button"
-                      disabled={submittingJob}
+                      disabled={submittingJob || !LIVE_JOBS_ENABLED || jobStatus?.status === "queued" || jobStatus?.status === "processing"}
                       onClick={handleSubmitAnalysis}
                       className="tactile-btn w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-900 text-white px-3 py-2 text-xs font-medium hover:bg-slate-800 disabled:opacity-60"
                     >
                       {submittingJob ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                      {submittingJob ? "Submitting..." : "Run NASA Analysis"}
+                      {submittingJob ? "Submitting..." : LIVE_JOBS_ENABLED ? "Run NASA Analysis" : "On-demand processing unavailable"}
                     </button>
                   </div>
                 )}
@@ -364,7 +381,7 @@ export function App() {
                         <button
                           key={item.file}
                           type="button"
-                          onClick={() => setSelectedFile(item.file)}
+                          onClick={() => { jobGeneration.current += 1; setCustomAoi(null); setJobStatus(null); setJobNotice(null); setSelectedFile(item.file); setDatasetRevision(value => value + 1); }}
                           className={`tactile-btn w-full text-left px-3 py-2 rounded-lg border text-xs ${
                             selectedFile === item.file
                               ? "border-sky-600 bg-sky-50/60 text-slate-900"
@@ -382,7 +399,7 @@ export function App() {
               </div>
             </div>
 
-            <div className="lg:col-span-8 space-y-4 reveal-card">
+            <div className="lg:col-span-8 min-w-0 space-y-4 reveal-card">
               {jobStatus && (
                 <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-xs text-sky-950 space-y-1">
                   <div className="flex items-center justify-between font-semibold">
@@ -412,26 +429,27 @@ export function App() {
               )}
 
               {error && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
                   {error}
                 </div>
               )}
 
-              {activeResult ? (
+              {loadingResult ? <p role="status" className="p-8">Loading observed dataset...</p> : activeResult ? (
                 <>
+                  <p className="text-xs text-slate-600">Displayed observations: {activeResult.metadata.region} · {activeResult.metadata.date_range.start}–{activeResult.metadata.date_range.end}. {customAoi && jobStatus?.status !== "completed" ? "The selected candidate area is not the displayed dataset until analysis completes." : ""}</p>
                   <TrendChart result={activeResult} />
                   <VerdictCard result={activeResult} />
                 </>
               ) : (
                 !error && (
                   <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500">
-                    Loading NASA Earth trend data...
+                    No observed result is loaded. Select a precomputed dataset to retry.
                   </div>
                 )
               )}
             </div>
           </div>
-        )}
+        ))}
       </main>
     </div>
   );

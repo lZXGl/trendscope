@@ -1,0 +1,53 @@
+[
+  {
+    "region": "aoi_s101",
+    "region_name": "Random region (64.70\u00b0N, 98.48\u00b0W)",
+    "is_random": true,
+    "lat": 64.7007,
+    "lon": -98.4826,
+    "variable": "NDVI",
+    "variable_name": "Vegetation greenness (NDVI)",
+    "variable_description": "Satellite vegetation index: higher values mean denser, healthier plant cover.",
+    "unit": "NDVI",
+    "source": "NASA MODIS MOD13A3.061",
+    "file": "results/aoi_s101_ndvi.json",
+    "significant": false,
+    "headline": "No trend computed yet (MOCK)",
+    "bbox": [
+      -98.7326,
+      64.4507,
+      -98.2326,
+      64.9507
+    ]
+  },
+  {
+    "region": "cairo",
+    "region_name": "Cairo",
+    "is_random": false,
+    "lat": 30.0444,
+    "lon": 31.2357,
+    "variable": "PRECTOTCORR",
+    "variable_name": "Rainfall",
+    "variable_description": "Monthly mean precipitation rate (bias-corrected).",
+    "unit": "mm/day",
+    "source": "NASA POWER",
+    "file": "results/cairo_prectotcorr.json",
+    "significant": false,
+    "headline": "No trend computed yet (MOCK)"
+  },
+  {
+    "region": "cairo",
+    "region_name": "Cairo",
+    "is_random": false,
+    "lat": 30.0444,
+    "lon": 31.2357,
+    "variable": "T2M",
+    "variable_name": "Air temperature",
+    "variable_description": "Monthly mean air temperature 2 metres above the ground.",
+    "unit": "degC",
+    "source": "NASA POWER",
+    "file": "results/cairo_t2m.json",
+    "significant": false,
+    "headline": "No trend computed yet (MOCK)"
+  }
+]

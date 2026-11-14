@@ -1,4 +1,11 @@
+import { parseJob, parseResult, readJson } from "./contracts";
+import { loadResult } from "./dataLoader";
 import type { AoiJobStatus, AoiSelection, TrendResult } from "../types/trend";
+
+// Public URL only. No token or credentials belong in a VITE_ environment value.
+export const JOB_API_BASE = (import.meta.env?.VITE_JOB_API_BASE_URL ?? "").replace(/\/$/, "");
+export const LIVE_JOBS_ENABLED = Boolean(JOB_API_BASE);
+export const UNAVAILABLE_MESSAGE = "On-demand NASA processing is unavailable in this static release. The precomputed observed dataset remains available.";
 
 export interface SubmitJobResponse {
   mode: "live" | "unavailable";
@@ -7,16 +14,17 @@ export interface SubmitJobResponse {
 }
 
 export function makeBboxAround(lat: number, lon: number, sizeDeg = 0.5): [number, number, number, number] {
+  if (![lat, lon, sizeDeg].every(Number.isFinite) || Math.abs(lat) > 90 || Math.abs(lon) > 180 || sizeDeg < 0.1 || sizeDeg > 2) {
+    throw new Error("Unsupported AOI coordinates or size.");
+  }
   const half = sizeDeg / 2;
-  const clampedLat = Math.max(-85, Math.min(85, lat));
-  const minLon = Number(Math.max(-180, lon - half).toFixed(4));
-  const maxLon = Number(Math.min(180, lon + half).toFixed(4));
-  const minLat = Number(Math.max(-90, clampedLat - half).toFixed(4));
-  const maxLat = Number(Math.min(90, clampedLat + half).toFixed(4));
-  return [minLon, minLat, maxLon, maxLat];
+  const centreLat = Math.max(-90 + half, Math.min(90 - half, lat));
+  const centreLon = Math.max(-180 + half, Math.min(180 - half, lon));
+  return [centreLon - half, centreLat - half, centreLon + half, centreLat + half]
+    .map(v => Number(v.toFixed(4))) as [number, number, number, number];
 }
 
-// Verified interior continental land boxes [minLat, maxLat, minLon, maxLon] so random picks stay on land
+// Candidate continental boxes; these are NOT a land mask. The backend must validate land.
 const LAND_BOXES: readonly [number, number, number, number][] = [
   [33, 48, -118, -82],   // North America interior
   [-18, -3, -68, -44],   // South America (Amazon / Cerrado)
@@ -44,7 +52,7 @@ export function randomLandSeedAoi(seed: number): AoiSelection {
     lat,
     lon,
     bbox: makeBboxAround(lat, lon, 0.5),
-    label: `Land AOI (seed ${seed})`,
+    label: `Candidate AOI (seed ${seed}; land unverified)`,
     isRandom: true,
   };
 }
@@ -55,8 +63,11 @@ export async function submitAnalysisJob(payload: {
   start_date: string;
   end_date: string;
 }): Promise<SubmitJobResponse> {
+  if (!LIVE_JOBS_ENABLED) return { mode: "unavailable", message: UNAVAILABLE_MESSAGE };
+  validateRequest(payload);
   try {
-    const resp = await fetch("/api/jobs", {
+    const resp = await fetch(`${JOB_API_BASE}/jobs`, {
+      signal: AbortSignal.timeout(15000),
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -68,14 +79,17 @@ export async function submitAnalysisJob(payload: {
           "Live NASA job API (/api/jobs) is not active in this static deployment. Select a pre-computed dataset or dispatch the GitHub Actions NASA AOI workflow.",
       };
     }
+    if (!resp.headers.get("content-type")?.includes("application/json")) {
+      return { mode: "unavailable", message: UNAVAILABLE_MESSAGE };
+    }
     const data = await resp.json();
     if (!resp.ok) {
       return {
         mode: "live",
-        message: data?.error || `Job request rejected (HTTP ${resp.status}).`,
+        message: typeof data?.error === "string" ? data.error : `Job request rejected (HTTP ${resp.status}).`,
       };
     }
-    return { mode: "live", job: data as AoiJobStatus };
+    return { mode: "live", job: parseJob(data) };
   } catch {
     return {
       mode: "unavailable",
@@ -86,18 +100,41 @@ export async function submitAnalysisJob(payload: {
 }
 
 export async function fetchJobStatus(jobId: string): Promise<AoiJobStatus> {
-  const resp = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch job status (HTTP ${resp.status})`);
-  }
-  return (await resp.json()) as AoiJobStatus;
+  if (!/^aoi_[0-9a-f]{16}$/.test(jobId)) throw new Error("Invalid job identifier.");
+  const resp = await fetch(`${JOB_API_BASE}/jobs/${encodeURIComponent(jobId)}`, { signal: AbortSignal.timeout(15000) });
+  const job = parseJob(await readJson(resp));
+  if (job.job_id !== jobId) throw new Error("Status belongs to a different job.");
+  return job;
 }
 
 export async function fetchJobResult(resultFile: string): Promise<TrendResult> {
-  const path = resultFile.startsWith("/") ? resultFile : `/data/${resultFile}`;
-  const resp = await fetch(path);
-  if (!resp.ok) {
-    throw new Error(`Failed to load job result ${path} (HTTP ${resp.status})`);
+  if (/^results\/[a-zA-Z0-9_-]+\.json$/.test(resultFile)) return loadResult(resultFile);
+  // Current backend branch documents this result endpoint. Never fetch an arbitrary URL.
+  if (!/^\/api\/jobs\/aoi_[0-9a-f]{16}\/result$/.test(resultFile)) {
+    throw new Error("Unsupported job result path.");
   }
-  return (await resp.json()) as TrendResult;
+  const origin = JOB_API_BASE.startsWith("http") ? new URL(JOB_API_BASE).origin : "";
+  return parseResult(await readJson(await fetch(`${origin}${resultFile}`, { signal: AbortSignal.timeout(15000) })));
+}
+
+export function validateRequest(payload: { bbox: number[]; product: string; start_date: string; end_date: string }) {
+  const [west, south, east, north] = payload.bbox;
+  if (payload.bbox.length !== 4 || !payload.bbox.every(Number.isFinite) ||
+      west < -180 || east > 180 || south < -90 || north > 90 ||
+      Number((east - west).toFixed(4)) < 0.1 || east - west > 2 ||
+      Number((north - south).toFixed(4)) < 0.1 || north - south > 2) {
+    throw new Error("AOI must have valid bounds, 0.1–2.0 degrees wide and high.");
+  }
+  if (payload.product !== "MOD13A3.061") throw new Error("Unsupported NASA product.");
+  const parse = (value: string) => {
+    if (!/^\d{2}-\d{2}-\d{4}$/.test(value)) throw new Error("Enter both valid dates.");
+    const [m, d, y] = value.split("-");
+    const iso = `${y}-${m}-${d}`;
+    const time = Date.parse(`${iso}T00:00:00Z`);
+    if (!Number.isFinite(time) || new Date(time).toISOString().slice(0, 10) !== iso) {
+      throw new Error("Enter both valid calendar dates.");
+    }
+    return time;
+  };
+  if (parse(payload.start_date) >= parse(payload.end_date)) throw new Error("Start date must precede end date.");
 }

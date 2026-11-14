@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts";
+import "echarts/theme/v5";
+import { chartData } from "../lib/chartData";
 import type { TrendResult } from "../types/trend";
 
 interface TrendChartProps {
@@ -15,7 +17,7 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
   useEffect(() => {
     const el = chartRef.current;
     if (!el) return;
-    const chart = echarts.init(el);
+    const chart = echarts.init(el, "v5");
     instanceRef.current = chart;
 
     const obs = new ResizeObserver(() => chart.resize());
@@ -32,28 +34,8 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
     const chart = instanceRef.current;
     if (!chart) return;
 
-    const dates = result.series.map((p) => p.date);
-    const values = result.series.map((p) => (mode === "anomaly" ? p.anomaly : p.raw));
+    const { dates, values, guide: trendLine } = chartData(result, mode);
     const accent = mode === "anomaly" ? "#0284c7" : "#059669";
-
-    // Compute Sen's slope trend line anchored at the series median
-    const validPairs = values
-      .map((v, idx) => (typeof v === "number" ? { idx, v } : null))
-      .filter((x): x is { idx: number; v: number } => x !== null);
-    const perMonthSlope = result.trend.slope_unit.includes("year")
-      ? result.trend.sens_slope / 12
-      : result.trend.slope_unit.includes("decade")
-        ? result.trend.sens_slope / 120
-        : result.trend.sens_slope;
-    let trendLine: (number | null)[] = [];
-    if (mode === "anomaly" && validPairs.length >= 2) {
-      const midIdx = validPairs[Math.floor(validPairs.length / 2)].idx;
-      const sortedVals = [...validPairs].map((p) => p.v).sort((a, b) => a - b);
-      const medianVal = sortedVals[Math.floor(sortedVals.length / 2)];
-      trendLine = values.map((_, idx) =>
-        Number((medianVal + perMonthSlope * (idx - midIdx)).toFixed(5)),
-      );
-    }
 
     const chartSeries: echarts.SeriesOption[] = [
       {
@@ -77,7 +59,7 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
 
     if (trendLine.length > 0) {
       chartSeries.push({
-        name: "Sen's Slope Trend",
+        name: "Sen slope guide (not observations)",
         type: "line",
         data: trendLine,
         showSymbol: false,
@@ -91,6 +73,7 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
       grid: { top: 28, right: 20, bottom: compact ? 36 : 56, left: 54 },
       tooltip: {
         trigger: "axis",
+        renderMode: "richText",
         backgroundColor: "#ffffff",
         borderColor: "#cbd5e1",
         textStyle: { color: "#0f172a", fontSize: 12 },
@@ -163,6 +146,7 @@ export function TrendChart({ result, compact = false }: TrendChartProps) {
         </div>
       </div>
 
+      <p className="text-[11px] text-slate-500 mb-2">Gaps represent missing observations. The dashed Sen slope guide is descriptive; no confidence interval is available.</p>
       <div ref={chartRef} className={compact ? "h-[240px] w-full" : "h-[340px] w-full"} />
     </div>
   );

@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Globe, { type GlobeMethods } from "react-globe.gl";
 import type { AoiSelection, TrendIndexItem } from "../types/trend";
+
+class GlobeBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+const coordinateLabel = (lat: number, lon: number) =>
+  `${Math.abs(lat).toFixed(2)}°${lat < 0 ? "S" : "N"}, ${Math.abs(lon).toFixed(2)}°${lon < 0 ? "W" : "E"}`;
 
 interface GlobePanelProps {
   items: TrendIndexItem[];
@@ -79,6 +88,7 @@ export function GlobePanel({
   onSelectCustomAoi,
 }: GlobePanelProps) {
   const [mode, setMode] = useState<"map" | "globe">("globe");
+  const [globeReady, setGlobeReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [size, setSize] = useState({ width: 380, height: 280 });
@@ -159,7 +169,7 @@ export function GlobePanel({
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Study Region Locator</h2>
           <p className="text-xs text-slate-500">
-            {activePin ? `${activePin.name} (${activePin.lat.toFixed(2)}°N, ${activePin.lon.toFixed(2)}°E)` : "Select a region"}
+            {activePin ? `${activePin.name} (${coordinateLabel(activePin.lat, activePin.lon)})` : "Select a region"}
           </p>
         </div>
 
@@ -175,7 +185,7 @@ export function GlobePanel({
           </button>
           <button
             type="button"
-            onClick={() => setMode("globe")}
+            onClick={() => { if (mode !== "globe") setGlobeReady(false); setMode("globe"); }}
             className={`tactile-btn px-2.5 py-1 text-[11px] font-medium rounded-md ${
               mode === "globe" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600"
             }`}
@@ -187,6 +197,7 @@ export function GlobePanel({
 
       {mode === "map" ? (
         <div className="relative bg-[#F0F7FF] p-2">
+          <p className="text-[11px] text-slate-600 px-2">Regional map covers Egypt; use the globe for other locations.</p>
           <svg viewBox="0 0 360 260" className="w-full h-[260px] rounded-lg border border-slate-200/80 bg-[#E0F2FE]">
             {/* Lat/Lon Graticule */}
             {[24, 26, 28, 30, 32].map((lat) => {
@@ -235,7 +246,7 @@ export function GlobePanel({
             />
 
             {/* Region Pins */}
-            {pins.map((pin) => {
+            {pins.filter(pin => pin.lat >= 22 && pin.lat <= 32.5 && pin.lon >= 24.5 && pin.lon <= 35.5).map((pin) => {
               const { x, y } = projectEgypt(pin.lat, pin.lon);
               const isSelected = pin.region === selectedRegion;
               const isLeft = pin.region === "nile_delta";
@@ -284,7 +295,9 @@ export function GlobePanel({
           </svg>
         </div>
       ) : (
-        <div ref={containerRef} className="relative h-[280px] w-full bg-[#E0F2FE] flex items-center justify-center">
+        <div ref={containerRef} data-globe-ready={globeReady} className="relative h-[280px] w-full bg-[#E0F2FE] flex items-center justify-center">
+          <GlobeBoundary fallback={<div className="p-4 text-xs text-slate-700">3D rendering is unavailable on this device. <button className="underline" onClick={() => setMode("map")}>Use regional map</button> or the region buttons below.</div>}>
+          {!globeReady && <p role="status" className="absolute z-10 pointer-events-none text-xs text-slate-700">Initializing globe...</p>}
           <Globe
             ref={globeRef}
             width={size.width}
@@ -322,6 +335,7 @@ export function GlobePanel({
             ringPropagationSpeed={2}
             ringRepeatPeriod={1200}
             onGlobeReady={() => {
+              setGlobeReady(true);
               if (!globeRef.current) return;
               const controls = globeRef.current.controls();
               controls.minDistance = 130;
@@ -344,6 +358,7 @@ export function GlobePanel({
               const btn = document.createElement("button");
               btn.type = "button";
               btn.textContent = p.name;
+              btn.title = p.name;
               btn.style.cssText = [
                 "padding: 3px 8px",
                 "border-radius: 9999px",
@@ -352,7 +367,7 @@ export function GlobePanel({
                 "white-space: nowrap",
                 "cursor: pointer",
                 "pointer-events: auto",
-                `transform: translate(${isLeft ? "-115%" : "18%"}, ${isLeft ? "-115%" : "18%"})`,
+                `transform: translate(${pins.length === 1 ? "0" : isLeft ? "-115%" : "18%"}, -115%)`,
                 `background: ${isSelected ? "#0284c7" : "#ffffff"}`,
                 `color: ${isSelected ? "#ffffff" : "#0f172a"}`,
                 `border: 1px solid ${isSelected ? "#0369a1" : "#cbd5e1"}`,
@@ -362,8 +377,9 @@ export function GlobePanel({
               wrap.appendChild(btn);
               return wrap;
             }}
-            onPointClick={(d) => onSelectRegion((d as RegionPin).region)}
+            onPointClick={(d) => { const region = (d as RegionPin).region; if (region !== "custom_aoi") onSelectRegion(region); }}
           />
+          </GlobeBoundary>
         </div>
       )}
     </div>

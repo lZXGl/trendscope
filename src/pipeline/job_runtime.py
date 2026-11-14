@@ -20,7 +20,7 @@ from wsgiref.simple_server import WSGIServer, make_server
 from filelock import FileLock
 
 from src.pipeline.aoi_request import InvalidRequest
-from src.pipeline.job_api import parse_request, route
+from src.pipeline.job_api import normalise_path, parse_request, route
 from src.pipeline.job_store import LocalJobStore
 from src.pipeline.job_worker import CachedObservations, JobWorker
 
@@ -50,7 +50,8 @@ class Application:
         self.admission = FileLock(store.root / "control" / "admission.lock")
 
     def _request(self, env):
-        method, path = env["REQUEST_METHOD"], env.get("PATH_INFO", "/")
+        method = env["REQUEST_METHOD"]
+        path = normalise_path(env.get("PATH_INFO", "/"))
         origin = env.get("HTTP_ORIGIN")
         if origin and origin not in self.origins:
             return 403, {"error": "Origin is not allowed."}

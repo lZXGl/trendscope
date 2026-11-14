@@ -128,3 +128,12 @@ secret; configure actual Vercel origin/CORS/client base URL/auth; install valid
 server-side NASA credentials and verify required service permissions; perform an
 authorized hosted fresh-job/restart exercise. The existing static precomputed release
 remains independent. No API base URL or successful hosted NASA run is invented.
+
+## Resumed review — 2026-11-14
+
+The pushed checkpoint `731819a` passed GitHub CI (run `43545690177`). Main is
+still `ce0b07b`. A subsequent HTTP regression reproduced a daily quota bypass via
+`/api//jobs` and `/api//jobs//`. Shared route normalization now applies the same
+admission limits to those aliases, trailing slashes and URL-decoded paths. All
+187 local tests and Ruff pass. Deployment dependencies above remain unresolved;
+no NASA calls or deployment were performed.

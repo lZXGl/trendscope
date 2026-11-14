@@ -63,7 +63,8 @@ download or statistics run on the HTTP request thread. Existing pending/complete
 or permanent failed work returns **200** with its actual state. Explicit POST of a
 retryable failure requeues the same job and retains its NASA task identity. Daily
 admission limits count new work and explicit retryable-failure attempts; pending
-and completed duplicates do not consume another work allowance.
+and completed duplicates do not consume another work allowance. Equivalent URL
+paths, including repeated or trailing slashes, share the same admission limits.
 
 ```json
 {

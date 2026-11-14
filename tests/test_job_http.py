@@ -468,3 +468,12 @@ def test_nasa_mode_default_processor_uses_fixture_adapters_only_after_post(tmp_p
         ]
         assert http("POST", payload=PAYLOAD)[1]["status"] == "completed"
         assert len(calls) == 2
+
+
+@pytest.mark.parametrize("path", ["/api//jobs", "/api/jobs/", "/api//jobs//", "/api/%6aobs"])
+def test_alternate_collection_paths_cannot_bypass_daily_quota(tmp_path, path):
+    with hosted(tmp_path, start=False, new_jobs_per_day=1) as (http, store, _):
+        assert http("POST", payload=PAYLOAD)[0] == 202
+        other = {**PAYLOAD, "bbox": [20, 40, 20.5, 40.5]}
+        assert http("POST", path, payload=other)[0] == 429
+        assert len(list((store.root / "jobs").glob("*.json"))) == 1

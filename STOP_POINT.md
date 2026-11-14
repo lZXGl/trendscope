@@ -1,6 +1,6 @@
 # TrendScope backend stop point
 
-Stopped after commit `94ed7d813fec374fd9d9bbce94007e028fcf7c71` on `feat/arbitrary-aoi-api`.
+Backend implementation checkpoint: `94ed7d813fec374fd9d9bbce94007e028fcf7c71`, preserved on `feat/arbitrary-aoi-api`.
 
 ## Done
 
@@ -21,3 +21,10 @@ Stopped after commit `94ed7d813fec374fd9d9bbce94007e028fcf7c71` on `feat/arbitra
 - No live API deployment or public URL exists. Do not claim hosted arbitrary-AOI processing is ready.
 
 Contract: `docs/live_api_contract.md`. Deployment: `docs/backend_deployment.md`. Detailed verification: `reports/arbitrary_aoi_api_release.md`.
+
+## Resumed review — 2026-11-14
+
+- Confirmed pushed checkpoint `731819a` passed GitHub CI; main remains `ce0b07b`.
+- Fixed daily job-quota bypass through repeated-slash API paths by sharing path normalization between admission and routing.
+- Regression tests reproduced the bypass before the fix; all 187 tests and Ruff now pass.
+- Hosting/domain selection is still missing. No deployment or NASA operations have been started.

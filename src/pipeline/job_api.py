@@ -121,9 +121,14 @@ def job_result(job_id: str, store: JobStore) -> Response:
     return 200, result
 
 
+def normalise_path(path: str) -> str:
+    """Use the same route identity for request admission and dispatch."""
+    return "/" + "/".join(part for part in path.split("?", 1)[0].split("/") if part)
+
+
 def route(method: str, path: str, body: bytes, store: JobStore, dispatch: Dispatch) -> Response:
     """Map an HTTP request onto the three operations. Shared by every way of hosting this."""
-    parts = [part for part in path.split("?")[0].strip("/").split("/") if part]
+    parts = normalise_path(path).strip("/").split("/")
     if parts[:2] != ["api", "jobs"]:
         return 404, {"error": "Not found."}
     if len(parts) == 2:

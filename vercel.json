@@ -3,3 +3,4 @@
   "framework": null,
   "buildCommand": "cd src/web && npm ci && npm run build && cd ../.. && node scripts/prepare-static-release.mjs src/web/dist/data",
   "outputDirectory": "src/web/dist"
+}

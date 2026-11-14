@@ -274,3 +274,207 @@ def _run_job(
                 store.put_submission(
                     job_id, {"request": request.to_dict(), "task_id": None, "created_at": _now()}
                 )
+            try:
+                task_id = submit(
+                    token,
+                    start_date=request.start_date,
+                    end_date=request.end_date,
+                    bbox=request.bbox,
+                    task_name=f"trendscope_{job_id}",
+                )
+                if not isinstance(task_id, str) or not task_id.strip():
+                    raise ValueError("Submission returned no task ID")
+            except Exception as exc:
+                raise JobFailed(
+                    f"NASA submission was not confirmed ({type(exc).__name__}). "
+                    "Reconcile existing NASA tasks before retrying; "
+                    "automatic resubmission blocked.",
+                    retryable=False,
+                ) from exc
+            if hasattr(store, "put_submission"):
+                store.put_submission(
+                    job_id,
+                    {"request": request.to_dict(), "task_id": task_id, "confirmed_at": _now()},
+                )
+            _save(store, job, nasa_task_id=task_id)
+        if prepare_only:
+            # The workflow persists this checkpoint before entering NASA's long wait.
+            return job
+
+        processed_dir = work_dir / "processed"
+        meta_path = fetch(
+            token,
+            {"region_id": job_id, "lat": lat, "lon": lon, "bbox": list(request.bbox)},
+            start_date=request.start_date,
+            end_date=request.end_date,
+            min_pixel_presence=request.min_pixel_presence,
+            allow_marginal=request.allow_marginal,
+            task_id=job["nasa_task_id"],
+            raster_root=work_dir / "rasters",
+            processed_dir=processed_dir,
+        )
+        meta_bytes = Path(meta_path).read_bytes()
+        meta = json.loads(meta_bytes)
+        if hasattr(store, "put_provenance"):
+            store.put_provenance(
+                job_id,
+                {
+                    "kind": "nasa_processing_attempt",
+                    "request": request.to_dict(),
+                    "nasa_task_id": job["nasa_task_id"],
+                    "metadata": meta,
+                    "metadata_sha256": hashlib.sha256(meta_bytes).hexdigest(),
+                    "metadata_path": str(meta_path),
+                },
+            )
+        from src.pipeline.nasa_manifest import validate_manifest
+
+        try:
+            validate_manifest(
+                meta, request, job_id, job["nasa_task_id"], processed_dir / f"{job_id}_ndvi.csv"
+            )
+        except (ValueError, TypeError, OSError) as exc:
+            raise JobFailed(f"Invalid NASA manifest: {exc}", retryable=False) from exc
+        if meta.get("status") == "low_coverage":
+            raise JobFailed("Too few usable satellite pixels in this area.", retryable=False)
+        if meta.get("status") != "ok":
+            error = str(meta.get("error", "unknown NASA pipeline error"))
+            if re.fullmatch(r"AppEEARS task .+ timed out after \d+s", error):
+                # NASA's queue outlives one bounded polling window. Resume the saved task.
+                return _save(
+                    store,
+                    job,
+                    status="processing",
+                    stage="waiting_for_nasa",
+                    error=None,
+                    retryable=False,
+                )
+            if (
+                meta.get("error_code") == "NASA_TASK_UNAVAILABLE"
+                or error == f"AppEEARS task {job['nasa_task_id']} failed with status: expired"
+            ):
+                raise JobFailed(
+                    f"NASA task {job['nasa_task_id']} expired or unavailable. "
+                    "Automatic retry blocked; "
+                    "operator reconciliation and explicit recovery are required.",
+                    retryable=False,
+                )
+            permanent = any(marker in error for marker in PERMANENT_NASA_ERRORS)
+            raise JobFailed(f"NASA data step failed: {error}", retryable=not permanent)
+
+        _save(store, job, stage="analysing")
+        from src.pipeline.build import BuildError, read_processed_csv, validate_quality
+
+        try:
+            observations = read_processed_csv(processed_dir / f"{job_id}_ndvi.csv")
+            validate_quality(observations)
+            result = stats(observations, lat=lat, lon=lon)
+            validate_cached_result(job, result)
+        except (
+            BuildError,
+            ValueError,
+            NotImplementedError,
+        ) as exc:  # bad series or insufficient data
+            raise JobFailed(f"Analysis not possible: {exc}", retryable=False) from exc
+        validate_payload(result, RESULT_SCHEMA_PATH, f"result for {job_id}")
+
+        result_file = store.put_result(job_id, result)
+        return _save(store, job, status="completed", stage=None, result_file=result_file)
+    except JobFailed as exc:
+        return _save(store, job, status="failed", error=str(exc), retryable=exc.retryable)
+    except Exception as exc:  # anything unexpected: report it, allow a retry
+        message = f"Unexpected error: {type(exc).__name__}: {exc}"
+        return _save(store, job, status="failed", error=message, retryable=True)
+
+
+def run_job(store: JobStore, job_id: str, token: str, work_dir: Path, **kwargs) -> dict:
+    """Serialize execution across HTTP workers and manual CLI invocations."""
+    from filelock import Timeout
+
+    try:
+        with (
+            store.locked(job_id, execution=True, timeout=0)
+            if hasattr(store, "locked")
+            else nullcontext()
+        ):
+            return _run_job(store, job_id, token, work_dir, **kwargs)
+    except Timeout:
+        return store.get_job(job_id)
+
+
+def _token_from_environment() -> str:
+    token = os.environ.get("APPEEARS_TOKEN")
+    if token:
+        return token
+    user, password = os.environ.get("EARTHDATA_USER"), os.environ.get("EARTHDATA_PASS")
+    if not user or not password:
+        raise JobFailed("Set APPEEARS_TOKEN or EARTHDATA_USER + EARTHDATA_PASS", retryable=True)
+    from src.data.fetch import appeears_login
+
+    return appeears_login(user, password)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Create or run an on-demand AOI analysis job.")
+    parser.add_argument("--store-dir", type=Path, default=DEFAULT_STORE_DIR)
+    commands = parser.add_subparsers(dest="command", required=True)
+    create = commands.add_parser("create", help="create (or reuse) the job for an area")
+    create.add_argument(
+        "--bbox",
+        type=float,
+        nargs=4,
+        required=True,
+        metavar=("MIN_LON", "MIN_LAT", "MAX_LON", "MAX_LAT"),
+    )
+    create.add_argument("--start-date", default=DEFAULT_START_DATE, help="MM-DD-YYYY")
+    create.add_argument("--end-date", default=DEFAULT_END_DATE, help="MM-DD-YYYY")
+    create.add_argument(
+        "--job-id", default="", help="If supplied, must match the request fingerprint"
+    )
+    run = commands.add_parser("run", help="run a queued job to completion")
+    run.add_argument("--job-id", required=True)
+    run.add_argument("--work-dir", type=Path, help="scratch folder for rasters (default: temp)")
+    prepare = commands.add_parser("prepare", help="save a NASA task checkpoint without downloading")
+    prepare.add_argument("--job-id", required=True)
+    args = parser.parse_args(argv)
+    store = LocalJobStore(args.store_dir)
+
+    if args.command == "create":
+        try:
+            request = AoiRequest(
+                bbox=tuple(args.bbox), start_date=args.start_date, end_date=args.end_date
+            )
+            if args.job_id and args.job_id != request.job_id():
+                raise InvalidRequest("job_id does not match bbox, dates and production settings")
+            job = create_or_reuse_job(store, request)
+        except InvalidRequest as exc:
+            print(f"INVALID REQUEST: {exc}", file=sys.stderr)
+            return 1
+    else:
+        job = store.get_job(args.job_id)
+        if job is None:
+            print("No such job", file=sys.stderr)
+            return 1
+        try:
+            # A valid completed cache needs no NASA credentials or network access.
+            cached = job["status"] == "completed" and store.get_result(args.job_id) is not None
+            terminal = job["status"] == "failed" and not job["retryable"]
+            token = "" if cached or terminal else _token_from_environment()
+            with tempfile.TemporaryDirectory() as temp:
+                job = run_job(
+                    store,
+                    args.job_id,
+                    token,
+                    getattr(args, "work_dir", None) or Path(temp),
+                    prepare_only=args.command == "prepare",
+                )
+        except Exception as exc:
+            message = str(exc) if isinstance(exc, JobFailed) else "NASA authentication unavailable"
+            job = _save(store, job, status="failed", error=message, retryable=True)
+
+    print(json.dumps(job, indent=2))
+    return 1 if job["status"] == "failed" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

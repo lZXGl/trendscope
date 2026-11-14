@@ -30,3 +30,23 @@ jobs:
         run: >-
           uv run python -m scripts.smoke_job_api
           --state-dir "$RUNNER_TEMP/http-jobs"
+      - name: Verify measured precomputed NDVI build without writing source datasets
+        run: >-
+          uv run python -m src.pipeline.build
+          --input data/processed/nile_delta_ndvi.csv
+          --out-dir "$RUNNER_TEMP/verified-ndvi"
+          --jobs-dir "$RUNNER_TEMP/empty-jobs"
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - name: Typecheck and build web
+        if: hashFiles('src/web/package.json') != ''
+        working-directory: src/web
+        run: npm ci && npx tsc --noEmit && npm run build && node ../../scripts/prepare-static-release.mjs dist/data

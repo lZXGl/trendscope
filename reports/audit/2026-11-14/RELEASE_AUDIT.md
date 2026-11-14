@@ -468,4 +468,3 @@ Current service topology is single persistent Linux host, one Gunicorn process/f
 - **other_agent:** Agent work is committed separately; no fix implemented by auditor.
 - **verification:** Corrupt one job/status file then submit and finish a distinct valid job; damaged job has an actionable integrity state.
 - **confidence:** CONFIRMED
-
